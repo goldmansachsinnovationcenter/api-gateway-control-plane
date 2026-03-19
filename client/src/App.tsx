@@ -8,6 +8,11 @@ import { AgentsPage } from "@/pages/AgentsPage";
 import { CloudAgentsPage } from "@/pages/CloudAgentsPage";
 import { AgentCorePage } from "@/pages/AgentCorePage";
 import { GovernancePage } from "@/pages/GovernancePage";
+import { PoliciesPage } from "@/pages/PoliciesPage";
+import { LifecyclePage } from "@/pages/LifecyclePage";
+import { AuditLogPage } from "@/pages/AuditLogPage";
+import { RiskDashboardPage } from "@/pages/RiskDashboardPage";
+import { ReportsPage } from "@/pages/ReportsPage";
 
 function App() {
   return (
@@ -22,6 +27,11 @@ function App() {
           <Route path="/cloud-agents" element={<CloudAgentsPage />} />
           <Route path="/agentcore" element={<AgentCorePage />} />
           <Route path="/governance" element={<GovernancePage />} />
+          <Route path="/governance/policies" element={<PoliciesPage />} />
+          <Route path="/governance/lifecycle" element={<LifecyclePage />} />
+          <Route path="/governance/audit-log" element={<AuditLogPage />} />
+          <Route path="/governance/risk" element={<RiskDashboardPage />} />
+          <Route path="/governance/reports" element={<ReportsPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

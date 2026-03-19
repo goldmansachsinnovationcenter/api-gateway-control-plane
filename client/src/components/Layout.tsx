@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
-  ChevronDown, ChevronRight, Monitor, Globe,
+  ChevronDown, ChevronRight, Monitor, Globe, FileText,
+  Clock, Activity, BarChart3, Tag,
 } from "lucide-react";
 
 // Collapsible nav section
@@ -124,7 +125,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore";
   const isCloudActive = path === "/cloud-agents" || path === "/agentcore";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
-  const isGovernanceActive = path === "/governance";
+  const isGovernanceActive = path === "/governance" || path === "/governance/policies" || path === "/governance/lifecycle" || path === "/governance/audit-log" || path === "/governance/risk" || path === "/governance/reports";
 
   return (
     <div className="min-h-screen flex">
@@ -159,6 +160,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Governance Section */}
           <NavSection label="Governance" icon={Shield} defaultOpen={isGovernanceActive} isActive={isGovernanceActive}>
             <NavLink path="/governance" label="APIs" icon={Globe} currentPath={path} size="small" />
+            <NavLink path="/governance/policies" label="Policies" icon={Shield} currentPath={path} size="small" />
+            <NavLink path="/governance/lifecycle" label="Lifecycle" icon={Clock} currentPath={path} size="small" />
+            <NavLink path="/governance/audit-log" label="Audit Log" icon={FileText} currentPath={path} size="small" />
+            <NavLink path="/governance/risk" label="Risk Assessment" icon={Activity} currentPath={path} size="small" />
+            <NavLink path="/governance/reports" label="Reports" icon={BarChart3} currentPath={path} size="small" />
           </NavSection>
         </nav>
 

@@ -8,6 +8,7 @@ import agentRoutes from './routes/agents.js';
 import bedrockAgentRoutes from './routes/bedrockAgents.js';
 import agentCoreRoutes from './routes/agentCore.js';
 import planRoutes from './routes/plans.js';
+import governanceRoutes from './routes/governance.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +32,7 @@ app.use('/api/agents', agentRoutes);
 app.use('/api/cloud-agents', bedrockAgentRoutes);
 app.use('/api/agentcore', agentCoreRoutes);
 app.use('/api', planRoutes);
+app.use('/api/governance', governanceRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

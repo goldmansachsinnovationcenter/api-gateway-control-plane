@@ -435,3 +435,219 @@ export const cloudAgentsApi = {
     ),
   delete: (id: string) => request<void>(`/cloud-agents/${id}`, { method: 'DELETE' }),
 };
+
+// ─── Governance Types ────────────────────────────────────────────────────────
+
+export interface CompliancePolicy {
+  id: string;
+  name: string;
+  description: string | null;
+  rule_type: string;
+  rule_config: Record<string, unknown>;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  enabled: number;
+  violationCount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PolicyViolation {
+  id: string;
+  policy_id: string;
+  api_id: string;
+  violation_details: Record<string, unknown>;
+  status: 'open' | 'resolved' | 'dismissed';
+  resolved_at: string | null;
+  policy_name: string;
+  severity: string;
+  rule_type: string;
+  api_name: string;
+  method: string;
+  path: string;
+  gateway_id: string;
+  created_at: string;
+}
+
+export interface ApiLifecycle {
+  id: string;
+  api_id: string;
+  version: string;
+  status: 'active' | 'deprecated' | 'sunset' | 'retired';
+  deprecation_date: string | null;
+  sunset_date: string | null;
+  successor_api_id: string | null;
+  notes: string | null;
+  api_name: string;
+  method: string;
+  path: string;
+  security_score?: number;
+  quality_score?: number;
+  gateway_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor: string;
+  changes: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditLogStats {
+  total: number;
+  today: number;
+  thisWeek: number;
+  byType: Array<{ entity_type: string; count: number }>;
+  byAction: Array<{ action: string; count: number }>;
+  recent: AuditLogEntry[];
+}
+
+export interface DataClassification {
+  id: string;
+  api_id: string;
+  classification: 'public' | 'internal' | 'confidential' | 'restricted';
+  pii_flag: number;
+  financial_flag: number;
+  notes: string | null;
+  api_name: string;
+  method: string;
+  path: string;
+  security_score?: number;
+  quality_score?: number;
+  gateway_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RiskCategory {
+  name: string;
+  score: number;
+  risk: 'low' | 'medium' | 'high';
+  details: string;
+}
+
+export interface ApiRisk {
+  id: string;
+  name: string;
+  method: string;
+  path: string;
+  security_score: number;
+  quality_score: number;
+  gateway_name: string;
+  overall: number;
+  risk: 'low' | 'medium' | 'high';
+  factors: string[];
+}
+
+export interface RiskAssessment {
+  totalApis: number;
+  overallRisk: 'low' | 'medium' | 'high';
+  riskScore: number;
+  avgSecurity: number;
+  avgQuality: number;
+  openViolations: number;
+  deprecatedApis: number;
+  unclassifiedApis: number;
+  categories: RiskCategory[];
+  apiRisks: ApiRisk[];
+}
+
+export interface RemediationSuggestion {
+  category: string;
+  severity: string;
+  title: string;
+  description: string;
+  action: string;
+}
+
+export interface ApiStandard {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  rule: Record<string, unknown>;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  enabled: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GovernanceReport {
+  type: string;
+  generatedAt: string;
+  title: string;
+  [key: string]: unknown;
+}
+
+export const governanceApi = {
+  // Policies
+  listPolicies: () => request<CompliancePolicy[]>('/governance/policies'),
+  getPolicy: (id: string) => request<CompliancePolicy>(`/governance/policies/${id}`),
+  createPolicy: (data: { name: string; description?: string; ruleType: string; ruleConfig?: Record<string, unknown>; severity?: string; enabled?: boolean }) =>
+    request<CompliancePolicy>('/governance/policies', { method: 'POST', body: JSON.stringify(data) }),
+  updatePolicy: (id: string, data: Partial<{ name: string; description: string; ruleType: string; ruleConfig: Record<string, unknown>; severity: string; enabled: boolean }>) =>
+    request<CompliancePolicy>(`/governance/policies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePolicy: (id: string) => request<void>(`/governance/policies/${id}`, { method: 'DELETE' }),
+  evaluatePolicies: () => request<{ evaluated: number; apisChecked: number; newViolations: number }>('/governance/policies/evaluate', { method: 'POST' }),
+
+  // Violations
+  listViolations: (policyId?: string, status?: string) => {
+    const params = new URLSearchParams();
+    if (policyId) params.set('policyId', policyId);
+    if (status) params.set('status', status);
+    const qs = params.toString();
+    return request<PolicyViolation[]>(`/governance/violations${qs ? '?' + qs : ''}`);
+  },
+  resolveViolation: (id: string) => request<{ status: string }>(`/governance/violations/${id}/resolve`, { method: 'POST' }),
+  dismissViolation: (id: string) => request<{ status: string }>(`/governance/violations/${id}/dismiss`, { method: 'POST' }),
+
+  // Lifecycle
+  listLifecycles: () => request<ApiLifecycle[]>('/governance/lifecycle'),
+  getLifecycle: (apiId: string) => request<ApiLifecycle | null>(`/governance/lifecycle/${apiId}`),
+  setLifecycle: (apiId: string, data: { version?: string; status?: string; deprecationDate?: string; sunsetDate?: string; successorApiId?: string; notes?: string }) =>
+    request<ApiLifecycle>(`/governance/lifecycle/${apiId}`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteLifecycle: (apiId: string) => request<void>(`/governance/lifecycle/${apiId}`, { method: 'DELETE' }),
+
+  // Audit Log
+  listAuditLogs: (params?: { entityType?: string; action?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.entityType) qs.set('entityType', params.entityType);
+    if (params?.action) qs.set('action', params.action);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.offset) qs.set('offset', String(params.offset));
+    const s = qs.toString();
+    return request<AuditLogEntry[]>(`/governance/audit-log${s ? '?' + s : ''}`);
+  },
+  getAuditLogStats: () => request<AuditLogStats>('/governance/audit-log/stats'),
+
+  // Data Classification
+  listClassifications: () => request<DataClassification[]>('/governance/classifications'),
+  getClassification: (apiId: string) => request<DataClassification | null>(`/governance/classifications/${apiId}`),
+  setClassification: (apiId: string, data: { classification: string; piiFlag?: boolean; financialFlag?: boolean; notes?: string }) =>
+    request<DataClassification>(`/governance/classifications/${apiId}`, { method: 'POST', body: JSON.stringify(data) }),
+
+  // Risk
+  getRiskAssessment: () => request<RiskAssessment>('/governance/risk'),
+
+  // Remediation
+  getRemediations: (apiId: string) => request<RemediationSuggestion[]>(`/governance/remediations/${apiId}`),
+
+  // Dependencies
+  getAllDependencies: () => request<Array<Api & { products: Array<{ id: string; name: string }>; agents: Array<{ id: string; name: string }>; totalDependents: number }>>('/governance/dependencies'),
+  getApiDependencies: (apiId: string) => request<{ products: Array<{ id: string; name: string }>; agents: Array<{ id: string; name: string }>; totalDependents: number }>(`/governance/dependencies/${apiId}`),
+
+  // Reports
+  generateReport: (type: string) => request<GovernanceReport>(`/governance/reports/${type}`),
+
+  // Standards
+  listStandards: () => request<ApiStandard[]>('/governance/standards'),
+  createStandard: (data: { name: string; description?: string; category?: string; rule?: Record<string, unknown>; severity?: string; enabled?: boolean }) =>
+    request<ApiStandard>('/governance/standards', { method: 'POST', body: JSON.stringify(data) }),
+  updateStandard: (id: string, data: Partial<{ name: string; description: string; category: string; rule: Record<string, unknown>; severity: string; enabled: boolean }>) =>
+    request<ApiStandard>(`/governance/standards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteStandard: (id: string) => request<void>(`/governance/standards/${id}`, { method: 'DELETE' }),
+};

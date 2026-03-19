@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { apisApi, gatewaysApi } from "@/lib/api";
-import type { Api, Gateway } from "@/lib/api";
+import { apisApi, gatewaysApi, governanceApi } from "@/lib/api";
+import type { Api, Gateway, RemediationSuggestion, DataClassification } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,8 @@ import { Backdrop } from "@/components/Backdrop";
 import {
   Shield, Eye, Save, Search, Filter, AlertTriangle,
   CheckCircle, XCircle, TrendingUp, BarChart3, Globe,
-  ArrowUpDown, ChevronDown, ChevronRight,
+  ArrowUpDown, ChevronDown, ChevronRight, Tag, Lightbulb,
+  Lock, FileWarning,
 } from "lucide-react";
 
 function getScoreLevel(score: number): { label: string; color: string; icon: React.ElementType } {
@@ -46,6 +47,10 @@ export function GovernancePage() {
   const [loading, setLoading] = useState(false);
   const [backdropMessage, setBackdropMessage] = useState("");
   const [expandedApi, setExpandedApi] = useState<string | null>(null);
+  const [remediations, setRemediations] = useState<Record<string, RemediationSuggestion[]>>({});
+  const [classifications, setClassifications] = useState<Record<string, DataClassification>>({});
+  const [classifyApiId, setClassifyApiId] = useState<string | null>(null);
+  const [classifyForm, setClassifyForm] = useState({ classification: "internal", piiFlag: false, financialFlag: false, notes: "" });
 
   const fetchApis = useCallback(async () => {
     try {
@@ -72,6 +77,41 @@ export function GovernancePage() {
   useEffect(() => {
     fetchApis();
   }, [fetchApis]);
+
+  const fetchRemediations = useCallback(async (apiId: string) => {
+    if (remediations[apiId]) return;
+    try {
+      const data = await governanceApi.getRemediations(apiId);
+      setRemediations(prev => ({ ...prev, [apiId]: data }));
+    } catch (err) { console.error(err); }
+  }, [remediations]);
+
+  const fetchClassification = useCallback(async (apiId: string) => {
+    if (classifications[apiId]) return;
+    try {
+      const data = await governanceApi.getClassification(apiId);
+      if (data) setClassifications(prev => ({ ...prev, [apiId]: data }));
+    } catch (err) { console.error(err); }
+  }, [classifications]);
+
+  const handleExpandApi = (apiId: string) => {
+    const isExpanding = expandedApi !== apiId;
+    setExpandedApi(isExpanding ? apiId : null);
+    if (isExpanding) {
+      fetchRemediations(apiId);
+      fetchClassification(apiId);
+    }
+  };
+
+  const handleClassify = async () => {
+    if (!classifyApiId) return;
+    try {
+      const data = await governanceApi.setClassification(classifyApiId, classifyForm);
+      setClassifications(prev => ({ ...prev, [classifyApiId]: data }));
+      setClassifyApiId(null);
+      setClassifyForm({ classification: "internal", piiFlag: false, financialFlag: false, notes: "" });
+    } catch (err) { console.error(err); }
+  };
 
   const handleViewSpec = async (api: Api) => {
     try {
@@ -346,7 +386,7 @@ export function GovernancePage() {
                 <CardContent className="p-0">
                   <button
                     className="w-full flex items-center gap-4 p-4 text-left"
-                    onClick={() => setExpandedApi(isExpanded ? null : api.id)}
+                    onClick={() => handleExpandApi(api.id)}
                   >
                     <div className={"flex flex-col items-center justify-center w-14 " + level.color}>
                       <LevelIcon className="h-5 w-5 mb-0.5" />
@@ -509,6 +549,118 @@ export function GovernancePage() {
                           </CardContent>
                         </Card>
                       </div>
+
+                      {/* Data Classification */}
+                      <Card className="mb-4">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Tag className="h-4 w-4" /> Data Classification
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {classifications[api.id] ? (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <Badge variant="outline" className={"text-xs " + (
+                                classifications[api.id].classification === "restricted" ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                                classifications[api.id].classification === "confidential" ? "bg-orange-500/20 text-orange-400 border-orange-500/30" :
+                                classifications[api.id].classification === "internal" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                                "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              )}>
+                                {classifications[api.id].classification.toUpperCase()}
+                              </Badge>
+                              {classifications[api.id].pii_flag ? (
+                                <Badge variant="outline" className="text-xs bg-red-500/10 text-red-400 border-red-500/20">
+                                  <Lock className="h-3 w-3 mr-1" /> PII
+                                </Badge>
+                              ) : null}
+                              {classifications[api.id].financial_flag ? (
+                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/20">
+                                  <FileWarning className="h-3 w-3 mr-1" /> Financial
+                                </Badge>
+                              ) : null}
+                              {classifications[api.id].notes && (
+                                <span className="text-xs text-muted-foreground">{classifications[api.id].notes}</span>
+                              )}
+                              <Button variant="ghost" size="sm" className="text-xs" onClick={() => {
+                                setClassifyApiId(api.id);
+                                const c = classifications[api.id];
+                                setClassifyForm({ classification: c.classification, piiFlag: !!c.pii_flag, financialFlag: !!c.financial_flag, notes: c.notes || "" });
+                              }}>Edit</Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Not classified</span>
+                              <Button variant="outline" size="sm" className="text-xs" onClick={() => setClassifyApiId(api.id)}>
+                                <Tag className="h-3 w-3 mr-1" /> Classify
+                              </Button>
+                            </div>
+                          )}
+
+                          {classifyApiId === api.id && (
+                            <div className="mt-3 p-3 rounded border border-border bg-background space-y-2">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={classifyForm.classification} onChange={e => setClassifyForm(f => ({ ...f, classification: e.target.value }))}>
+                                  <option value="public">Public</option>
+                                  <option value="internal">Internal</option>
+                                  <option value="confidential">Confidential</option>
+                                  <option value="restricted">Restricted</option>
+                                </select>
+                                <label className="flex items-center gap-1.5 text-xs">
+                                  <input type="checkbox" checked={classifyForm.piiFlag} onChange={e => setClassifyForm(f => ({ ...f, piiFlag: e.target.checked }))} />
+                                  Contains PII
+                                </label>
+                                <label className="flex items-center gap-1.5 text-xs">
+                                  <input type="checkbox" checked={classifyForm.financialFlag} onChange={e => setClassifyForm(f => ({ ...f, financialFlag: e.target.checked }))} />
+                                  Financial Data
+                                </label>
+                                <Input placeholder="Notes" className="h-8 text-xs" value={classifyForm.notes} onChange={e => setClassifyForm(f => ({ ...f, notes: e.target.value }))} />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" className="text-xs h-7" onClick={handleClassify}>Save</Button>
+                                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setClassifyApiId(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Remediation Suggestions */}
+                      {remediations[api.id] && remediations[api.id].length > 0 && (
+                        <Card className="mb-4">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4 text-amber-400" /> Remediation Suggestions
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            {remediations[api.id].map((rem, idx) => (
+                              <div key={idx} className="flex items-start gap-3 p-2 rounded border border-border">
+                                <div className="shrink-0 mt-0.5">
+                                  {rem.severity === "high" ? (
+                                    <XCircle className="h-4 w-4 text-red-400" />
+                                  ) : rem.severity === "medium" ? (
+                                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4 text-blue-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium">{rem.title}</span>
+                                    <Badge variant="outline" className={"text-[10px] " + (
+                                      rem.category === "security" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                                      rem.category === "quality" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                                      "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                    )}>{rem.category}</Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{rem.description}</p>
+                                  <p className="text-xs text-primary/80 mt-1">{rem.action}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </CardContent>
+                        </Card>
+                      )}
 
                       <div className="flex justify-end">
                         <Button variant="outline" size="sm" onClick={() => handleViewSpec(api)}>

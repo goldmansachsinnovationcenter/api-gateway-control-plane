@@ -227,6 +227,82 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (cloud_agent_id) REFERENCES cloud_agents(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS compliance_policies (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    rule_type TEXT NOT NULL,
+    rule_config TEXT DEFAULT '{}',
+    severity TEXT DEFAULT 'medium' CHECK(severity IN ('critical', 'high', 'medium', 'low')),
+    enabled INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS policy_violations (
+    id TEXT PRIMARY KEY,
+    policy_id TEXT NOT NULL,
+    api_id TEXT NOT NULL,
+    violation_details TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'open' CHECK(status IN ('open', 'resolved', 'dismissed')),
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (policy_id) REFERENCES compliance_policies(id) ON DELETE CASCADE,
+    FOREIGN KEY (api_id) REFERENCES apis(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS api_lifecycle (
+    id TEXT PRIMARY KEY,
+    api_id TEXT NOT NULL UNIQUE,
+    version TEXT DEFAULT '1.0.0',
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'deprecated', 'sunset', 'retired')),
+    deprecation_date TEXT,
+    sunset_date TEXT,
+    successor_api_id TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (api_id) REFERENCES apis(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS governance_audit_log (
+    id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    actor TEXT DEFAULT 'system',
+    changes TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS data_classifications (
+    id TEXT PRIMARY KEY,
+    api_id TEXT NOT NULL UNIQUE,
+    classification TEXT DEFAULT 'internal' CHECK(classification IN ('public', 'internal', 'confidential', 'restricted')),
+    pii_flag INTEGER DEFAULT 0,
+    financial_flag INTEGER DEFAULT 0,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (api_id) REFERENCES apis(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS api_standards (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'general',
+    rule TEXT DEFAULT '{}',
+    severity TEXT DEFAULT 'medium' CHECK(severity IN ('critical', 'high', 'medium', 'low')),
+    enabled INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_policy_violations_lookup ON policy_violations(policy_id, status);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);
 `);
 
 export default db;
