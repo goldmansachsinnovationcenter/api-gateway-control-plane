@@ -608,7 +608,7 @@ export function McpTestingPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">MCP Tool Testing</h1>
+        <h1 className="text-2xl font-bold">MCP and Tools</h1>
         <p className="text-muted-foreground mt-1">Test tools from API products or discover tools from external MCP servers</p>
       </div>
 

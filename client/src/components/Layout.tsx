@@ -145,7 +145,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Top-level links */}
           <NavLink path="/" label="Gateways" icon={Server} currentPath={path} />
           <NavLink path="/products" label="Products" icon={Package} currentPath={path} />
-          <NavLink path="/mcp" label="MCP Testing" icon={Cpu} currentPath={path} />
+          <NavLink path="/mcp" label="MCP and Tools" icon={Cpu} currentPath={path} />
 
           {/* Agents Section */}
           <NavSection label="Agents" icon={Bot} defaultOpen={isAgentsActive} isActive={isAgentsActive}>
