@@ -22,12 +22,33 @@ export interface GatewayConfig {
   accessKeyId?: string;
   secretAccessKey?: string;
   stageName?: string;
+  // Azure API Management
+  subscriptionId?: string;
+  resourceGroup?: string;
+  serviceName?: string;
+  tenantId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  // MuleSoft Anypoint
+  organizationId?: string;
+  environmentId?: string;
+  anypointUrl?: string;
+  // Google Apigee
+  projectId?: string;
+  organizationName?: string;
+  authToken?: string;
+  // Tyk
+  dashboardUrl?: string;
+  gatewayUrl?: string;
+  // NGINX
+  serverUrl?: string;
+  configPath?: string;
 }
 
 export interface Gateway {
   id: string;
   name: string;
-  type: 'aws' | 'kong' | 'custom';
+  type: 'aws' | 'kong' | 'azure' | 'mulesoft' | 'apigee' | 'tyk' | 'nginx' | 'custom';
   config: GatewayConfig;
   status: string;
   apiCount: number;

@@ -501,6 +501,220 @@ function generateMockKongApis(gatewayId, config) {
   return mockApis;
 }
 
+// ─── Azure API Management mock APIs ─────────────────────────────────────────
+function generateMockAzureApis(gatewayId, config) {
+  return [
+    {
+      name: 'Get Customers',
+      method: 'GET',
+      path: '/api/v1/customers',
+      description: 'Retrieve customer list from Azure CRM backend',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Customers', version: '1.0.0' }, paths: { '/api/v1/customers': { get: { summary: 'Retrieve customer list', parameters: [{ name: 'top', in: 'query', schema: { type: 'integer', default: 50 }, description: 'Number of records to return' }, { name: 'skip', in: 'query', schema: { type: 'integer', default: 0 }, description: 'Records to skip' }], responses: { '200': { description: 'Customer list' } }, security: [{ 'Ocp-Apim-Subscription-Key': [] }] } } } }),
+      security_score: 88, quality_score: 90
+    },
+    {
+      name: 'Create Customer',
+      method: 'POST',
+      path: '/api/v1/customers',
+      description: 'Create a new customer record',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Create Customer', version: '1.0.0' }, paths: { '/api/v1/customers': { post: { summary: 'Create a new customer', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['firstName', 'lastName', 'email'], properties: { firstName: { type: 'string' }, lastName: { type: 'string' }, email: { type: 'string', format: 'email' }, company: { type: 'string' } } } } } }, responses: { '201': { description: 'Customer created' }, '400': { description: 'Validation error' } }, security: [{ 'Ocp-Apim-Subscription-Key': [] }, { OAuth2: ['write'] }] } } } }),
+      security_score: 94, quality_score: 88
+    },
+    {
+      name: 'Get Invoices',
+      method: 'GET',
+      path: '/api/v1/invoices',
+      description: 'Retrieve invoice records with filtering',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Invoices', version: '1.0.0' }, paths: { '/api/v1/invoices': { get: { summary: 'Retrieve invoices', parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue'] } }, { name: 'customerId', in: 'query', schema: { type: 'string' } }], responses: { '200': { description: 'Invoice list' } }, security: [{ 'Ocp-Apim-Subscription-Key': [] }] } } } }),
+      security_score: 85, quality_score: 87
+    },
+    {
+      name: 'Submit Invoice',
+      method: 'POST',
+      path: '/api/v1/invoices',
+      description: 'Submit a new invoice for processing',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Submit Invoice', version: '1.0.0' }, paths: { '/api/v1/invoices': { post: { summary: 'Submit invoice', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['customerId', 'amount', 'dueDate'], properties: { customerId: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string', default: 'USD' }, dueDate: { type: 'string', format: 'date' }, lineItems: { type: 'array', items: { type: 'object', properties: { description: { type: 'string' }, quantity: { type: 'integer' }, unitPrice: { type: 'number' } } } } } } } } }, responses: { '201': { description: 'Invoice created' }, '400': { description: 'Validation error' } }, security: [{ OAuth2: ['write'] }] } } } }),
+      security_score: 92, quality_score: 85
+    },
+    {
+      name: 'Get Analytics',
+      method: 'GET',
+      path: '/api/v1/analytics/summary',
+      description: 'Retrieve analytics summary dashboard data',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Analytics', version: '1.0.0' }, paths: { '/api/v1/analytics/summary': { get: { summary: 'Analytics summary', parameters: [{ name: 'period', in: 'query', schema: { type: 'string', enum: ['day', 'week', 'month', 'quarter'] }, description: 'Time period' }], responses: { '200': { description: 'Analytics data' } }, security: [{ 'Ocp-Apim-Subscription-Key': [] }] } } } }),
+      security_score: 82, quality_score: 92
+    }
+  ];
+}
+
+// ─── MuleSoft Anypoint mock APIs ─────────────────────────────────────────────
+function generateMockMuleSoftApis(gatewayId, config) {
+  return [
+    {
+      name: 'Get Accounts',
+      method: 'GET',
+      path: '/api/v2/accounts',
+      description: 'Retrieve Salesforce accounts via MuleSoft integration',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Accounts', version: '2.0.0' }, paths: { '/api/v2/accounts': { get: { summary: 'List accounts from Salesforce', parameters: [{ name: 'type', in: 'query', schema: { type: 'string', enum: ['prospect', 'customer', 'partner'] } }, { name: 'limit', in: 'query', schema: { type: 'integer', default: 100 } }], responses: { '200': { description: 'Account list' } }, security: [{ clientCredentials: [] }] } } } }),
+      security_score: 90, quality_score: 88
+    },
+    {
+      name: 'Sync Contacts',
+      method: 'POST',
+      path: '/api/v2/contacts/sync',
+      description: 'Synchronize contacts between Salesforce and SAP',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Sync Contacts', version: '2.0.0' }, paths: { '/api/v2/contacts/sync': { post: { summary: 'Sync contacts across systems', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['source', 'target'], properties: { source: { type: 'string', enum: ['salesforce', 'sap', 'hubspot'] }, target: { type: 'string', enum: ['salesforce', 'sap', 'hubspot'] }, filters: { type: 'object', properties: { modifiedSince: { type: 'string', format: 'date-time' }, status: { type: 'string' } } } } } } } }, responses: { '200': { description: 'Sync result summary' }, '409': { description: 'Sync conflict detected' } }, security: [{ clientCredentials: [] }] } } } }),
+      security_score: 88, quality_score: 85
+    },
+    {
+      name: 'Transform Data',
+      method: 'POST',
+      path: '/api/v2/transform',
+      description: 'Transform data using DataWeave expressions',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Transform Data', version: '2.0.0' }, paths: { '/api/v2/transform': { post: { summary: 'Transform data payload', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['payload', 'expression'], properties: { payload: { type: 'object', description: 'Input data' }, expression: { type: 'string', description: 'DataWeave expression' }, outputFormat: { type: 'string', enum: ['json', 'xml', 'csv'], default: 'json' } } } } } }, responses: { '200': { description: 'Transformed data' }, '400': { description: 'Invalid expression' } }, security: [{ bearerAuth: [] }] } } } }),
+      security_score: 82, quality_score: 90
+    },
+    {
+      name: 'Get Integration Status',
+      method: 'GET',
+      path: '/api/v2/integrations/status',
+      description: 'Check integration flow health and status',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Integration Status', version: '2.0.0' }, paths: { '/api/v2/integrations/status': { get: { summary: 'Get integration flow statuses', responses: { '200': { description: 'Status of all integration flows' } }, security: [{ clientCredentials: [] }] } } } }),
+      security_score: 78, quality_score: 82
+    },
+    {
+      name: 'Publish Event',
+      method: 'POST',
+      path: '/api/v2/events',
+      description: 'Publish event to Anypoint MQ for async processing',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Publish Event', version: '2.0.0' }, paths: { '/api/v2/events': { post: { summary: 'Publish event to message queue', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['eventType', 'payload'], properties: { eventType: { type: 'string', enum: ['order.created', 'order.updated', 'customer.created', 'invoice.paid'] }, payload: { type: 'object' }, correlationId: { type: 'string' } } } } } }, responses: { '202': { description: 'Event accepted' } }, security: [{ clientCredentials: [] }] } } } }),
+      security_score: 86, quality_score: 88
+    }
+  ];
+}
+
+// ─── Google Apigee mock APIs ─────────────────────────────────────────────────
+function generateMockApigeeApis(gatewayId, config) {
+  return [
+    {
+      name: 'Geocode Address',
+      method: 'GET',
+      path: '/maps/v1/geocode',
+      description: 'Convert address to coordinates via Google Maps proxy',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Geocode Address', version: '1.0.0' }, paths: { '/maps/v1/geocode': { get: { summary: 'Geocode an address', parameters: [{ name: 'address', in: 'query', required: true, schema: { type: 'string' }, description: 'Address to geocode' }, { name: 'format', in: 'query', schema: { type: 'string', enum: ['json', 'xml'], default: 'json' } }], responses: { '200': { description: 'Geocoding result' }, '400': { description: 'Invalid address' } }, security: [{ apiKey: [] }] } } } }),
+      security_score: 80, quality_score: 92
+    },
+    {
+      name: 'Get Recommendations',
+      method: 'GET',
+      path: '/ml/v1/recommendations',
+      description: 'Get ML-powered product recommendations',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Recommendations', version: '1.0.0' }, paths: { '/ml/v1/recommendations': { get: { summary: 'Get product recommendations', parameters: [{ name: 'userId', in: 'query', required: true, schema: { type: 'string' } }, { name: 'category', in: 'query', schema: { type: 'string' } }, { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } }], responses: { '200': { description: 'Recommendation list' } }, security: [{ OAuth2: ['read'] }] } } } }),
+      security_score: 86, quality_score: 90
+    },
+    {
+      name: 'Send Notification',
+      method: 'POST',
+      path: '/notifications/v1/send',
+      description: 'Send push/email/SMS notifications',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Send Notification', version: '1.0.0' }, paths: { '/notifications/v1/send': { post: { summary: 'Send a notification', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['channel', 'recipient', 'message'], properties: { channel: { type: 'string', enum: ['push', 'email', 'sms'] }, recipient: { type: 'string' }, message: { type: 'string' }, templateId: { type: 'string' }, priority: { type: 'string', enum: ['low', 'normal', 'high', 'critical'], default: 'normal' } } } } } }, responses: { '202': { description: 'Notification queued' }, '400': { description: 'Invalid payload' } }, security: [{ OAuth2: ['write'] }] } } } }),
+      security_score: 90, quality_score: 88
+    },
+    {
+      name: 'Get Device Telemetry',
+      method: 'GET',
+      path: '/iot/v1/devices/{deviceId}/telemetry',
+      description: 'Retrieve IoT device telemetry data',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Device Telemetry', version: '1.0.0' }, paths: { '/iot/v1/devices/{deviceId}/telemetry': { get: { summary: 'Get device telemetry', parameters: [{ name: 'deviceId', in: 'path', required: true, schema: { type: 'string' } }, { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } }, { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } }], responses: { '200': { description: 'Telemetry data' }, '404': { description: 'Device not found' } }, security: [{ apiKey: [] }] } } } }),
+      security_score: 84, quality_score: 86
+    },
+    {
+      name: 'Process Payment',
+      method: 'POST',
+      path: '/payments/v1/process',
+      description: 'Process payment through payment gateway proxy',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Process Payment', version: '1.0.0' }, paths: { '/payments/v1/process': { post: { summary: 'Process a payment', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['amount', 'currency', 'paymentMethod'], properties: { amount: { type: 'number' }, currency: { type: 'string' }, paymentMethod: { type: 'string', enum: ['credit_card', 'debit_card', 'bank_transfer', 'digital_wallet'] }, idempotencyKey: { type: 'string' } } } } } }, responses: { '200': { description: 'Payment processed' }, '402': { description: 'Payment failed' } }, security: [{ OAuth2: ['payments:write'] }] } } } }),
+      security_score: 96, quality_score: 90
+    }
+  ];
+}
+
+// ─── Tyk Gateway mock APIs ───────────────────────────────────────────────────
+function generateMockTykApis(gatewayId, config) {
+  return [
+    {
+      name: 'Get Inventory',
+      method: 'GET',
+      path: '/warehouse/v1/inventory',
+      description: 'Retrieve current warehouse inventory levels',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Inventory', version: '1.0.0' }, paths: { '/warehouse/v1/inventory': { get: { summary: 'List inventory items', parameters: [{ name: 'warehouse', in: 'query', schema: { type: 'string' }, description: 'Warehouse location code' }, { name: 'belowThreshold', in: 'query', schema: { type: 'boolean' }, description: 'Only items below reorder threshold' }], responses: { '200': { description: 'Inventory list' } }, security: [{ authToken: [] }] } } } }),
+      security_score: 82, quality_score: 88
+    },
+    {
+      name: 'Update Stock',
+      method: 'PUT',
+      path: '/warehouse/v1/inventory/{sku}',
+      description: 'Update stock level for a specific SKU',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Update Stock', version: '1.0.0' }, paths: { '/warehouse/v1/inventory/{sku}': { put: { summary: 'Update stock level', parameters: [{ name: 'sku', in: 'path', required: true, schema: { type: 'string' } }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['quantity', 'reason'], properties: { quantity: { type: 'integer' }, reason: { type: 'string', enum: ['received', 'sold', 'returned', 'damaged', 'adjustment'] }, notes: { type: 'string' } } } } } }, responses: { '200': { description: 'Stock updated' }, '404': { description: 'SKU not found' } }, security: [{ authToken: [] }] } } } }),
+      security_score: 85, quality_score: 90
+    },
+    {
+      name: 'Get Shipments',
+      method: 'GET',
+      path: '/logistics/v1/shipments',
+      description: 'Track active shipments and delivery status',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Shipments', version: '1.0.0' }, paths: { '/logistics/v1/shipments': { get: { summary: 'List shipments', parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'in_transit', 'delivered', 'returned'] } }, { name: 'carrier', in: 'query', schema: { type: 'string' } }], responses: { '200': { description: 'Shipment list' } }, security: [{ authToken: [] }] } } } }),
+      security_score: 80, quality_score: 85
+    },
+    {
+      name: 'Create Shipment',
+      method: 'POST',
+      path: '/logistics/v1/shipments',
+      description: 'Create a new shipment order',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Create Shipment', version: '1.0.0' }, paths: { '/logistics/v1/shipments': { post: { summary: 'Create shipment', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['origin', 'destination', 'items'], properties: { origin: { type: 'string' }, destination: { type: 'string' }, items: { type: 'array', items: { type: 'object', properties: { sku: { type: 'string' }, quantity: { type: 'integer' } } } }, carrier: { type: 'string', enum: ['fedex', 'ups', 'dhl', 'usps'] }, priority: { type: 'string', enum: ['standard', 'express', 'overnight'] } } } } } }, responses: { '201': { description: 'Shipment created' } }, security: [{ authToken: [] }] } } } }),
+      security_score: 88, quality_score: 87
+    }
+  ];
+}
+
+// ─── NGINX API Gateway mock APIs ─────────────────────────────────────────────
+function generateMockNginxApis(gatewayId, config) {
+  return [
+    {
+      name: 'Get Metrics',
+      method: 'GET',
+      path: '/monitoring/v1/metrics',
+      description: 'Retrieve system performance metrics',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Metrics', version: '1.0.0' }, paths: { '/monitoring/v1/metrics': { get: { summary: 'System metrics', parameters: [{ name: 'period', in: 'query', schema: { type: 'string', enum: ['1m', '5m', '15m', '1h', '24h'] }, description: 'Metric window' }, { name: 'service', in: 'query', schema: { type: 'string' }, description: 'Filter by service name' }], responses: { '200': { description: 'Metric data' } }, security: [{ bearerAuth: [] }] } } } }),
+      security_score: 78, quality_score: 90
+    },
+    {
+      name: 'Upload File',
+      method: 'POST',
+      path: '/storage/v1/upload',
+      description: 'Upload file to object storage',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Upload File', version: '1.0.0' }, paths: { '/storage/v1/upload': { post: { summary: 'Upload a file', requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary' }, bucket: { type: 'string', default: 'default' }, path: { type: 'string' } } } } } }, responses: { '201': { description: 'File uploaded' }, '413': { description: 'File too large' } }, security: [{ bearerAuth: [] }] } } } }),
+      security_score: 84, quality_score: 86
+    },
+    {
+      name: 'Get Config',
+      method: 'GET',
+      path: '/admin/v1/config',
+      description: 'Retrieve current NGINX configuration',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Get Config', version: '1.0.0' }, paths: { '/admin/v1/config': { get: { summary: 'Get current config', responses: { '200': { description: 'NGINX configuration' } }, security: [{ bearerAuth: [] }] } } } }),
+      security_score: 70, quality_score: 75
+    },
+    {
+      name: 'Health Status',
+      method: 'GET',
+      path: '/admin/v1/health',
+      description: 'NGINX health check and upstream status',
+      spec: JSON.stringify({ openapi: '3.0.0', info: { title: 'Health Status', version: '1.0.0' }, paths: { '/admin/v1/health': { get: { summary: 'Health check', responses: { '200': { description: 'Service healthy', content: { 'application/json': { schema: { type: 'object', properties: { status: { type: 'string' }, upstreams: { type: 'object' }, activeConnections: { type: 'integer' } } } } } } } } } } }),
+      security_score: 65, quality_score: 88
+    }
+  ];
+}
+
 export async function registerGateway(name, type, config) {
   const id = uuidv4();
 
@@ -508,6 +722,9 @@ export async function registerGateway(name, type, config) {
   const configToStore = { ...config };
   delete configToStore.accessKeyId;
   delete configToStore.secretAccessKey;
+  delete configToStore.clientSecret;
+  delete configToStore.authToken;
+  delete configToStore.password;
 
   const stmt = db.prepare('INSERT INTO gateways (id, name, type, config) VALUES (?, ?, ?, ?)');
   stmt.run(id, name, type, JSON.stringify(configToStore));
@@ -520,6 +737,16 @@ export async function registerGateway(name, type, config) {
     apis = realApis || generateMockAwsApis(id, JSON.stringify(config));
   } else if (type === 'kong') {
     apis = generateMockKongApis(id, JSON.stringify(config));
+  } else if (type === 'azure') {
+    apis = generateMockAzureApis(id, config);
+  } else if (type === 'mulesoft') {
+    apis = generateMockMuleSoftApis(id, config);
+  } else if (type === 'apigee') {
+    apis = generateMockApigeeApis(id, config);
+  } else if (type === 'tyk') {
+    apis = generateMockTykApis(id, config);
+  } else if (type === 'nginx') {
+    apis = generateMockNginxApis(id, config);
   }
 
   const insertApi = db.prepare('INSERT INTO apis (id, gateway_id, name, method, path, description, spec, security_score, quality_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');

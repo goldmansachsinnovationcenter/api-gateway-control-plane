@@ -31,8 +31,8 @@ router.post('/', async (req, res) => {
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
-    if (!['aws', 'kong', 'custom'].includes(type)) {
-      return res.status(400).json({ error: 'Type must be aws, kong, or custom' });
+    if (!['aws', 'kong', 'azure', 'mulesoft', 'apigee', 'tyk', 'nginx', 'custom'].includes(type)) {
+      return res.status(400).json({ error: 'Type must be aws, kong, azure, mulesoft, apigee, tyk, nginx, or custom' });
     }
     const result = await gatewayService.registerGateway(name, type, config || {});
     res.status(201).json(result);
