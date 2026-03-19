@@ -10,6 +10,8 @@ import agentCoreRoutes from './routes/agentCore.js';
 import planRoutes from './routes/plans.js';
 import governanceRoutes from './routes/governance.js';
 import agentHubRoutes from './routes/agentHub.js';
+import salesforceAgentRoutes from './routes/salesforceAgents.js';
+import copilotAgentRoutes from './routes/copilotAgents.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +37,8 @@ app.use('/api/agentcore', agentCoreRoutes);
 app.use('/api', planRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/agent-hub', agentHubRoutes);
+app.use('/api/salesforce-agents', salesforceAgentRoutes);
+app.use('/api/copilot-agents', copilotAgentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

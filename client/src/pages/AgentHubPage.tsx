@@ -7,19 +7,23 @@ import { Input } from "@/components/ui/input";
 import {
   Bot, Cloud, Boxes, Search, Monitor, Activity,
   CheckCircle, XCircle, ChevronDown, ChevronUp,
-  Zap, Clock, BarChart3, Globe, Server,
+  Zap, Clock, BarChart3, Globe, Server, Building2,
 } from "lucide-react";
 
 const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; badgeClass: string }> = {
   local: { label: "Local", icon: Monitor, color: "text-blue-400", badgeClass: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   bedrock: { label: "Bedrock", icon: Cloud, color: "text-purple-400", badgeClass: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
   agentcore: { label: "AgentCore", icon: Boxes, color: "text-cyan-400", badgeClass: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  salesforce: { label: "Salesforce", icon: Cloud, color: "text-[#00A1E0]", badgeClass: "bg-[#00A1E0]/20 text-[#00A1E0] border-[#00A1E0]/30" },
+  copilot: { label: "Copilot", icon: Building2, color: "text-[#0078D4]", badgeClass: "bg-[#0078D4]/20 text-[#0078D4] border-[#0078D4]/30" },
 };
 
 const statusConfig: Record<string, { color: string; dotClass: string; label: string }> = {
   idle: { color: "text-emerald-400", dotClass: "bg-emerald-500", label: "Idle" },
   running: { color: "text-amber-400", dotClass: "bg-amber-500 animate-pulse", label: "Running" },
   error: { color: "text-red-400", dotClass: "bg-red-500", label: "Error" },
+  Active: { color: "text-emerald-400", dotClass: "bg-emerald-500", label: "Active" },
+  Inactive: { color: "text-gray-400", dotClass: "bg-gray-500", label: "Inactive" },
   PREPARED: { color: "text-emerald-400", dotClass: "bg-emerald-500", label: "Prepared" },
   NOT_PREPARED: { color: "text-amber-400", dotClass: "bg-amber-500", label: "Not Prepared" },
   READY: { color: "text-emerald-400", dotClass: "bg-emerald-500", label: "Ready" },
@@ -83,7 +87,7 @@ export function AgentHubPage() {
             Agent Hub
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Unified view of all agents across local, Bedrock, and AgentCore
+            Unified view of all agents across local, Bedrock, AgentCore, Salesforce, and Copilot
           </p>
         </div>
       </div>
@@ -132,8 +136,8 @@ export function AgentHubPage() {
 
       {/* Provider Breakdown */}
       {summary && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {(["local", "bedrock", "agentcore"] as const).map(type => {
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          {(["local", "bedrock", "agentcore", "salesforce", "copilot"] as const).map(type => {
             const cfg = typeConfig[type];
             const Icon = cfg.icon;
             const count = summary.providers[type];
@@ -168,6 +172,8 @@ export function AgentHubPage() {
             { value: "local", label: "Local" },
             { value: "bedrock", label: "Bedrock" },
             { value: "agentcore", label: "AgentCore" },
+            { value: "salesforce", label: "Salesforce" },
+            { value: "copilot", label: "Copilot" },
           ].map(opt => (
             <button key={opt.value} onClick={() => setTypeFilter(opt.value)}
               className={"px-3 py-1.5 rounded-md text-xs transition-colors " +
@@ -332,9 +338,13 @@ export function AgentHubPage() {
                           <CardTitle className="text-sm flex items-center gap-2">
                             {agent.type === "local" ? <Monitor className="h-4 w-4" /> :
                              agent.type === "bedrock" ? <Cloud className="h-4 w-4" /> :
+                             agent.type === "salesforce" ? <Cloud className="h-4 w-4" /> :
+                             agent.type === "copilot" ? <Building2 className="h-4 w-4" /> :
                              <Boxes className="h-4 w-4" />}
                             {agent.type === "local" ? "Local Config" :
                              agent.type === "bedrock" ? "Bedrock Config" :
+                             agent.type === "salesforce" ? "Salesforce Config" :
+                             agent.type === "copilot" ? "Copilot Config" :
                              "AgentCore Config"}
                           </CardTitle>
                         </CardHeader>

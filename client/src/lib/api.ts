@@ -658,7 +658,7 @@ export interface AgentHubEntry {
   id: string;
   name: string;
   description: string;
-  type: 'local' | 'bedrock' | 'agentcore';
+  type: 'local' | 'bedrock' | 'agentcore' | 'salesforce' | 'copilot';
   provider: string;
   status: string;
   model: string;
@@ -680,6 +680,8 @@ export interface AgentHubSummary {
   local: number;
   bedrock: number;
   agentcore: number;
+  salesforce: number;
+  copilot: number;
   active: number;
   inactive: number;
   totalCalls: number;
@@ -688,6 +690,8 @@ export interface AgentHubSummary {
     local: number;
     bedrock: number;
     agentcore: number;
+    salesforce: number;
+    copilot: number;
   };
 }
 
@@ -698,4 +702,119 @@ export interface AgentHubResponse {
 
 export const agentHubApi = {
   getAll: () => request<AgentHubResponse>('/agent-hub'),
+};
+
+// ─── Salesforce Agents ──────────────────────────────────────────────────────
+
+export interface SalesforceAgent {
+  id: string;
+  sf_agent_id: string;
+  name: string;
+  description: string;
+  status: string;
+  agent_type: string;
+  channel: string;
+  model: string;
+  instruction: string;
+  instance_url: string;
+  region: string;
+  enabled: number;
+  last_synced: string | null;
+  created_at: string;
+  updated_at: string;
+  logCount: number;
+  successCount: number;
+  successRate: number;
+  logs?: SalesforceAgentLog[];
+}
+
+export interface SalesforceAgentLog {
+  id: string;
+  salesforce_agent_id: string;
+  session_id: string;
+  input_text: string;
+  output_text: string;
+  success: number;
+  duration_ms: number;
+  created_at: string;
+}
+
+export const salesforceAgentsApi = {
+  discover: (instanceUrl?: string, accessToken?: string) =>
+    request<{ discovered: number; agents: SalesforceAgent[] }>('/salesforce-agents/discover', {
+      method: 'POST',
+      body: JSON.stringify({ instanceUrl, accessToken }),
+    }),
+  list: () => request<SalesforceAgent[]>('/salesforce-agents'),
+  get: (id: string) => request<SalesforceAgent>(`/salesforce-agents/${id}`),
+  enable: (id: string) => request<SalesforceAgent>(`/salesforce-agents/${id}/enable`, { method: 'POST' }),
+  disable: (id: string) => request<SalesforceAgent>(`/salesforce-agents/${id}/disable`, { method: 'POST' }),
+  invoke: (id: string, inputText: string, sessionId?: string) =>
+    request<{ sessionId: string; output: string; success: boolean; durationMs: number }>(
+      `/salesforce-agents/${id}/invoke`,
+      { method: 'POST', body: JSON.stringify({ inputText, sessionId }) }
+    ),
+  sync: (id: string) => request<SalesforceAgent>(`/salesforce-agents/${id}/sync`, { method: 'POST' }),
+  getLogs: (id: string) => request<SalesforceAgentLog[]>(`/salesforce-agents/${id}/logs`),
+  exportLogs: (id: string) => request<{ agent: SalesforceAgent; logs: SalesforceAgentLog[] }>(`/salesforce-agents/${id}/export`),
+  clearLogs: (id: string) => request<void>(`/salesforce-agents/${id}/logs`, { method: 'DELETE' }),
+  delete: (id: string) => request<void>(`/salesforce-agents/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Azure Copilot Agents ───────────────────────────────────────────────────
+
+export interface AzureAgent {
+  id: string;
+  azure_agent_id: string;
+  name: string;
+  description: string;
+  status: string;
+  agent_type: string;
+  model: string;
+  instruction: string;
+  endpoint_url: string;
+  tenant_id: string;
+  resource_group: string;
+  region: string;
+  enabled: number;
+  last_synced: string | null;
+  created_at: string;
+  updated_at: string;
+  logCount: number;
+  successCount: number;
+  successRate: number;
+  logs?: AzureAgentLog[];
+}
+
+export interface AzureAgentLog {
+  id: string;
+  azure_agent_id: string;
+  session_id: string;
+  input_text: string;
+  output_text: string;
+  success: number;
+  duration_ms: number;
+  created_at: string;
+}
+
+export const copilotAgentsApi = {
+  discover: (endpointUrl?: string, accessToken?: string, tenantId?: string) =>
+    request<{ discovered: number; agents: AzureAgent[] }>('/copilot-agents/discover', {
+      method: 'POST',
+      body: JSON.stringify({ endpointUrl, accessToken, tenantId }),
+    }),
+  list: () => request<AzureAgent[]>('/copilot-agents'),
+  get: (id: string) => request<AzureAgent>(`/copilot-agents/${id}`),
+  enable: (id: string) => request<AzureAgent>(`/copilot-agents/${id}/enable`, { method: 'POST' }),
+  disable: (id: string) => request<AzureAgent>(`/copilot-agents/${id}/disable`, { method: 'POST' }),
+  invoke: (id: string, inputText: string, sessionId?: string) =>
+    request<{ sessionId: string; output: string; success: boolean; durationMs: number }>(
+      `/copilot-agents/${id}/invoke`,
+      { method: 'POST', body: JSON.stringify({ inputText, sessionId }) }
+    ),
+  sync: (id: string) => request<AzureAgent>(`/copilot-agents/${id}/sync`, { method: 'POST' }),
+  getLogs: (id: string) => request<AzureAgentLog[]>(`/copilot-agents/${id}/logs`),
+  exportLogs: (id: string) => request<{ agent: AzureAgent; logs: AzureAgentLog[] }>(`/copilot-agents/${id}/export`),
+  clearLogs: (id: string) => request<void>(`/copilot-agents/${id}/logs`, { method: 'DELETE' }),
+  delete: (id: string) => request<void>(`/copilot-agents/${id}`, { method: 'DELETE' }),
 };

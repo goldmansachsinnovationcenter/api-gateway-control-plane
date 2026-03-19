@@ -2,12 +2,14 @@ import { Router } from 'express';
 import * as agentService from '../services/agentService.js';
 import * as bedrockAgentService from '../services/bedrockAgentService.js';
 import * as agentCoreService from '../services/agentCoreService.js';
+import * as salesforceAgentService from '../services/salesforceAgentService.js';
+import * as copilotAgentService from '../services/copilotAgentService.js';
 
 const router = Router();
 
 /**
  * GET /api/agent-hub
- * Aggregates all agent types (local, Bedrock, AgentCore) into a unified view.
+ * Aggregates all agent types (local, Bedrock, AgentCore, Salesforce, Copilot) into a unified view.
  */
 router.get('/', (req, res) => {
   try {
@@ -93,7 +95,64 @@ router.get('/', (req, res) => {
       },
     }));
 
-    const allAgents = [...localAgents, ...cloudAgents, ...runtimes];
+    // Salesforce agents
+    const sfAgents = salesforceAgentService.listSalesforceAgents().map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      type: 'salesforce',
+      provider: 'Salesforce',
+      status: agent.status || 'Active',
+      model: agent.model || 'Einstein GPT',
+      region: agent.region || null,
+      linkedProduct: null,
+      linkedProductId: null,
+      enabled: !!agent.enabled,
+      totalCalls: agent.logCount || 0,
+      successRate: agent.successRate || 0,
+      avgResponseMs: 0,
+      lastActive: agent.updated_at,
+      createdAt: agent.created_at,
+      updatedAt: agent.updated_at,
+      details: {
+        sfAgentId: agent.sf_agent_id,
+        agentType: agent.agent_type,
+        channel: agent.channel,
+        instanceUrl: agent.instance_url,
+        instruction: agent.instruction,
+      },
+    }));
+
+    // Azure Copilot agents
+    const azureAgents = copilotAgentService.listAzureAgents().map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      type: 'copilot',
+      provider: 'Microsoft Copilot',
+      status: agent.status || 'Active',
+      model: agent.model || 'gpt-4o',
+      region: agent.region || null,
+      linkedProduct: null,
+      linkedProductId: null,
+      enabled: !!agent.enabled,
+      totalCalls: agent.logCount || 0,
+      successRate: agent.successRate || 0,
+      avgResponseMs: 0,
+      lastActive: agent.updated_at,
+      createdAt: agent.created_at,
+      updatedAt: agent.updated_at,
+      details: {
+        azureAgentId: agent.azure_agent_id,
+        agentType: agent.agent_type,
+        endpointUrl: agent.endpoint_url,
+        tenantId: agent.tenant_id,
+        resourceGroup: agent.resource_group,
+        instruction: agent.instruction,
+      },
+    }));
+
+    const allAgents = [...localAgents, ...cloudAgents, ...runtimes, ...sfAgents, ...azureAgents];
 
     // Summary stats
     const summary = {
@@ -101,6 +160,8 @@ router.get('/', (req, res) => {
       local: localAgents.length,
       bedrock: cloudAgents.length,
       agentcore: runtimes.length,
+      salesforce: sfAgents.length,
+      copilot: azureAgents.length,
       active: allAgents.filter(a => a.enabled).length,
       inactive: allAgents.filter(a => !a.enabled).length,
       totalCalls: allAgents.reduce((sum, a) => sum + a.totalCalls, 0),
@@ -111,6 +172,8 @@ router.get('/', (req, res) => {
         local: localAgents.length,
         bedrock: cloudAgents.length,
         agentcore: runtimes.length,
+        salesforce: sfAgents.length,
+        copilot: azureAgents.length,
       },
     };
 

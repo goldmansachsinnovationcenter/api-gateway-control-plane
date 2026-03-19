@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
   ChevronDown, ChevronRight, Monitor, Globe, FileText,
-  Clock, Activity, BarChart3, Tag, Zap,
+  Clock, Activity, BarChart3, Tag, Zap, Building2,
 } from "lucide-react";
 
 // Collapsible nav section
@@ -122,9 +122,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const path = location.pathname;
 
-  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub";
-  const isCloudActive = path === "/cloud-agents" || path === "/agentcore";
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents";
+  const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
+  const isSalesforceActive = path === "/salesforce-agents";
+  const isCopilotActive = path === "/copilot-agents";
   const isGovernanceActive = path === "/governance" || path === "/governance/policies" || path === "/governance/lifecycle" || path === "/governance/audit-log" || path === "/governance/risk" || path === "/governance/reports";
 
   return (
@@ -155,6 +157,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <NavLink path="/cloud-agents" label="Bedrock" icon={Cloud} currentPath={path} size="small" />
                 <NavLink path="/agentcore" label="AgentCore" icon={Boxes} currentPath={path} size="small" />
               </NavSubSection>
+              <NavLink path="/salesforce-agents" label="Salesforce" icon={Cloud} currentPath={path} size="small" />
+              <NavLink path="/copilot-agents" label="Microsoft" icon={Building2} currentPath={path} size="small" />
             </NavSubSection>
           </NavSection>
 

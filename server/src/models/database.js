@@ -300,6 +300,67 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS salesforce_agents (
+    id TEXT PRIMARY KEY,
+    sf_agent_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'Active',
+    agent_type TEXT DEFAULT 'AgentForce',
+    channel TEXT DEFAULT 'API',
+    model TEXT,
+    instruction TEXT,
+    instance_url TEXT,
+    region TEXT,
+    enabled INTEGER DEFAULT 0,
+    last_synced TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS salesforce_agent_logs (
+    id TEXT PRIMARY KEY,
+    salesforce_agent_id TEXT NOT NULL,
+    session_id TEXT,
+    input_text TEXT,
+    output_text TEXT,
+    success INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (salesforce_agent_id) REFERENCES salesforce_agents(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS azure_agents (
+    id TEXT PRIMARY KEY,
+    azure_agent_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'Active',
+    agent_type TEXT DEFAULT 'CopilotAgent',
+    model TEXT,
+    instruction TEXT,
+    endpoint_url TEXT,
+    tenant_id TEXT,
+    resource_group TEXT,
+    region TEXT,
+    enabled INTEGER DEFAULT 0,
+    last_synced TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS azure_agent_logs (
+    id TEXT PRIMARY KEY,
+    azure_agent_id TEXT NOT NULL,
+    session_id TEXT,
+    input_text TEXT,
+    output_text TEXT,
+    success INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (azure_agent_id) REFERENCES azure_agents(id) ON DELETE CASCADE
+  );
+
   CREATE INDEX IF NOT EXISTS idx_policy_violations_lookup ON policy_violations(policy_id, status);
   CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);
