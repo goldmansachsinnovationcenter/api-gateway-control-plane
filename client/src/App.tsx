@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
+import { HomePage } from "@/pages/HomePage";
 import { GatewaysPage } from "@/pages/GatewaysPage";
 import { ApisPage } from "@/pages/ApisPage";
 import { ProductsPage } from "@/pages/ProductsPage";
@@ -26,7 +27,8 @@ function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<GatewaysPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/gateways" element={<GatewaysPage />} />
           <Route path="/apis" element={<ApisPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/mcp" element={<McpTestingPage />} />

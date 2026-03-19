@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
   ChevronDown, ChevronRight, Monitor, Globe, FileText,
-  Clock, Activity, BarChart3, Tag, Zap, Building2, Settings,
+  Clock, Activity, BarChart3, Tag, Zap, Building2, Settings, Home,
 } from "lucide-react";
 
 // Collapsible nav section
@@ -123,6 +123,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const path = location.pathname;
 
   const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents" || path === "/claude-agents" || path === "/agent-governance";
+  const isSettingsActive = path === "/settings";
   const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/claude-agents";
   const isDevinActive = path === "/devin-agents";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
@@ -145,7 +146,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {/* Top-level links */}
-          <NavLink path="/" label="Gateways" icon={Server} currentPath={path} />
+          <NavLink path="/" label="Home" icon={Home} currentPath={path} />
+          <NavLink path="/gateways" label="Gateways" icon={Server} currentPath={path} />
           <NavLink path="/apis" label="APIs" icon={Globe} currentPath={path} />
           <NavLink path="/products" label="Products" icon={Package} currentPath={path} />
           <NavLink path="/mcp" label="MCP and Tools" icon={Cpu} currentPath={path} />

@@ -1265,3 +1265,42 @@ export const settingsApi = {
   // System Info
   getSystemInfo: () => request<SystemInfo>('/settings/system'),
 };
+
+// ==================== DASHBOARD ====================
+
+export interface DashboardData {
+  counts: {
+    gateways: number;
+    apis: number;
+    products: number;
+    agents: number;
+    cloudAgents: number;
+    users: number;
+    policies: number;
+    violations: number;
+    apiKeys: number;
+    plans: number;
+    webhooks: number;
+  };
+  agentStats: {
+    total: number;
+    active: number;
+    enabled: number;
+    anomalies: number;
+  };
+  gatewayTypes: Array<{ type: string; count: number }>;
+  apiHealth: {
+    avgSecurityScore: number;
+    avgQualityScore: number;
+  };
+  recent: {
+    gateways: Array<Record<string, unknown>>;
+    apis: Array<Record<string, unknown>>;
+    audit: Array<Record<string, unknown>>;
+  };
+  timestamp: string;
+}
+
+export const dashboardApi = {
+  getData: () => request<DashboardData>('/dashboard'),
+};
