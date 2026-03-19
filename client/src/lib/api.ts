@@ -232,6 +232,96 @@ export const agentsApi = {
     request<{ agent: { id: string; name: string }; logs: AgentLog[]; exportedAt: string }>(`/agents/${id}/export`),
 };
 
+export interface AgentCoreRuntime {
+  id: string;
+  runtime_id: string;
+  runtime_arn: string | null;
+  name: string;
+  description: string | null;
+  status: string;
+  version: string | null;
+  region: string;
+  gateway_id: string | null;
+  last_synced: string | null;
+  gateway: { id: string; name: string; type: string } | null;
+  logCount: number;
+  successCount: number;
+  successRate: number;
+  logs?: AgentCoreRuntimeLog[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentCoreRuntimeLog {
+  id: string;
+  runtime_id: string;
+  session_id: string | null;
+  input_text: string;
+  output_text: string;
+  success: number;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface AgentCoreGatewayTarget {
+  id: string;
+  agentcore_gateway_id: string;
+  target_id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentCoreGateway {
+  id: string;
+  ac_gateway_id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  protocol_type: string;
+  authorizer_type: string;
+  region: string;
+  gateway_id: string | null;
+  target_count: number;
+  last_synced: string | null;
+  gateway: { id: string; name: string; type: string } | null;
+  targets: AgentCoreGatewayTarget[];
+  created_at: string;
+  updated_at: string;
+}
+
+export const agentCoreApi = {
+  discoverRuntimes: (gatewayId: string) =>
+    request<{ discovered: number; imported: AgentCoreRuntime[] }>('/agentcore/discover/runtimes', {
+      method: 'POST', body: JSON.stringify({ gatewayId }),
+    }),
+  discoverGateways: (gatewayId: string) =>
+    request<{ discovered: number; imported: AgentCoreGateway[] }>('/agentcore/discover/gateways', {
+      method: 'POST', body: JSON.stringify({ gatewayId }),
+    }),
+  listRuntimes: () => request<AgentCoreRuntime[]>('/agentcore/runtimes'),
+  getRuntime: (id: string) => request<AgentCoreRuntime>(`/agentcore/runtimes/${id}`),
+  invokeRuntime: (id: string, inputText: string, sessionId?: string) =>
+    request<{ logId: string; sessionId: string; inputText: string; outputText: string; success: boolean; durationMs: number }>(
+      `/agentcore/runtimes/${id}/invoke`, { method: 'POST', body: JSON.stringify({ inputText, sessionId }) }
+    ),
+  syncRuntime: (id: string) => request<AgentCoreRuntime>(`/agentcore/runtimes/${id}/sync`, { method: 'POST' }),
+  getRuntimeLogs: (id: string, limit?: number) =>
+    request<AgentCoreRuntimeLog[]>(`/agentcore/runtimes/${id}/logs${limit ? `?limit=${limit}` : ''}`),
+  clearRuntimeLogs: (id: string) => request<void>(`/agentcore/runtimes/${id}/logs`, { method: 'DELETE' }),
+  exportRuntimeLogs: (id: string) =>
+    request<{ runtime: { id: string; name: string; runtime_id: string }; logs: AgentCoreRuntimeLog[]; exportedAt: string }>(
+      `/agentcore/runtimes/${id}/export`
+    ),
+  deleteRuntime: (id: string) => request<void>(`/agentcore/runtimes/${id}`, { method: 'DELETE' }),
+  listGateways: () => request<AgentCoreGateway[]>('/agentcore/gateways'),
+  getGateway: (id: string) => request<AgentCoreGateway>(`/agentcore/gateways/${id}`),
+  syncGateway: (id: string) => request<AgentCoreGateway>(`/agentcore/gateways/${id}/sync`, { method: 'POST' }),
+  deleteGateway: (id: string) => request<void>(`/agentcore/gateways/${id}`, { method: 'DELETE' }),
+};
+
 export const cloudAgentsApi = {
   list: () => request<CloudAgent[]>('/cloud-agents'),
   get: (id: string) => request<CloudAgent>(`/cloud-agents/${id}`),

@@ -120,6 +120,63 @@ db.exec(`
     FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE SET NULL
   );
 
+  CREATE TABLE IF NOT EXISTS agentcore_runtimes (
+    id TEXT PRIMARY KEY,
+    runtime_id TEXT NOT NULL,
+    runtime_arn TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'UNKNOWN',
+    version TEXT,
+    region TEXT NOT NULL DEFAULT 'us-east-1',
+    gateway_id TEXT,
+    last_synced TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS agentcore_gateways (
+    id TEXT PRIMARY KEY,
+    ac_gateway_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'UNKNOWN',
+    protocol_type TEXT DEFAULT 'MCP',
+    authorizer_type TEXT DEFAULT 'NONE',
+    region TEXT NOT NULL DEFAULT 'us-east-1',
+    gateway_id TEXT,
+    target_count INTEGER DEFAULT 0,
+    last_synced TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS agentcore_gateway_targets (
+    id TEXT PRIMARY KEY,
+    agentcore_gateway_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'UNKNOWN',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (agentcore_gateway_id) REFERENCES agentcore_gateways(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS agentcore_runtime_logs (
+    id TEXT PRIMARY KEY,
+    runtime_id TEXT NOT NULL,
+    session_id TEXT,
+    input_text TEXT,
+    output_text TEXT,
+    success INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (runtime_id) REFERENCES agentcore_runtimes(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS cloud_agent_logs (
     id TEXT PRIMARY KEY,
     cloud_agent_id TEXT NOT NULL,

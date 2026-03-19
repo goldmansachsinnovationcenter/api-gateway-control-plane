@@ -6,6 +6,7 @@ import { ProductsPage } from "@/pages/ProductsPage";
 import { McpTestingPage } from "@/pages/McpTestingPage";
 import { AgentsPage } from "@/pages/AgentsPage";
 import { CloudAgentsPage } from "@/pages/CloudAgentsPage";
+import { AgentCorePage } from "@/pages/AgentCorePage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/mcp" element={<McpTestingPage />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/cloud-agents" element={<CloudAgentsPage />} />
+          <Route path="/agentcore" element={<AgentCorePage />} />
         </Routes>
       </Layout>
     </BrowserRouter>
