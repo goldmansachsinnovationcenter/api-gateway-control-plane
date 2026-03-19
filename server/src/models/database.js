@@ -177,6 +177,44 @@ db.exec(`
     FOREIGN KEY (runtime_id) REFERENCES agentcore_runtimes(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS plans (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    rate_limit_per_minute INTEGER DEFAULT 0,
+    rate_limit_per_hour INTEGER DEFAULT 0,
+    rate_limit_per_day INTEGER DEFAULT 0,
+    quota_per_month INTEGER DEFAULT 0,
+    throttle_burst_limit INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id TEXT PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    application_name TEXT NOT NULL,
+    api_key TEXT NOT NULL UNIQUE,
+    status TEXT DEFAULT 'active',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS rate_limit_logs (
+    id TEXT PRIMARY KEY,
+    subscription_id TEXT NOT NULL,
+    window_key TEXT NOT NULL,
+    request_count INTEGER DEFAULT 1,
+    window_start TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_rate_limit_logs_lookup ON rate_limit_logs(subscription_id, window_key);
+
   CREATE TABLE IF NOT EXISTS cloud_agent_logs (
     id TEXT PRIMARY KEY,
     cloud_agent_id TEXT NOT NULL,

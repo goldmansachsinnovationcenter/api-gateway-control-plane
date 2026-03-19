@@ -292,6 +292,95 @@ export interface AgentCoreGateway {
   updated_at: string;
 }
 
+export interface Plan {
+  id: string;
+  product_id: string;
+  name: string;
+  description: string | null;
+  rate_limit_per_minute: number;
+  rate_limit_per_hour: number;
+  rate_limit_per_day: number;
+  quota_per_month: number;
+  throttle_burst_limit: number;
+  subscriberCount: number;
+  subscriptions?: Subscription[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionUsage {
+  currentMinute: number;
+  currentHour: number;
+  currentDay: number;
+  currentMonth: number;
+}
+
+export interface Subscription {
+  id: string;
+  plan_id: string;
+  application_name: string;
+  api_key: string;
+  status: 'active' | 'suspended' | 'revoked';
+  plan_name?: string;
+  product_id?: string;
+  rate_limit_per_minute?: number;
+  rate_limit_per_hour?: number;
+  rate_limit_per_day?: number;
+  quota_per_month?: number;
+  throttle_burst_limit?: number;
+  usage?: SubscriptionUsage;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductUsageSummary {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  totalRequestsThisMonth: number;
+  subscriptions: Subscription[];
+}
+
+export const plansApi = {
+  listForProduct: (productId: string) =>
+    request<Plan[]>(`/products/${productId}/plans`),
+  get: (id: string) => request<Plan>(`/plans/${id}`),
+  create: (productId: string, data: {
+    name: string; description?: string;
+    rateLimitPerMinute?: number; rateLimitPerHour?: number;
+    rateLimitPerDay?: number; quotaPerMonth?: number;
+    throttleBurstLimit?: number;
+  }) => request<Plan>(`/products/${productId}/plans`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  update: (id: string, data: Partial<{
+    name: string; description: string;
+    rateLimitPerMinute: number; rateLimitPerHour: number;
+    rateLimitPerDay: number; quotaPerMonth: number;
+    throttleBurstLimit: number;
+  }>) => request<Plan>(`/plans/${id}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+  delete: (id: string) => request<void>(`/plans/${id}`, { method: 'DELETE' }),
+  listSubscriptions: (planId: string) =>
+    request<Subscription[]>(`/plans/${planId}/subscriptions`),
+  subscribe: (planId: string, applicationName: string) =>
+    request<Subscription>(`/plans/${planId}/subscriptions`, {
+      method: 'POST', body: JSON.stringify({ applicationName }),
+    }),
+  getSubscription: (id: string) =>
+    request<Subscription>(`/subscriptions/${id}`),
+  updateSubscriptionStatus: (id: string, status: string) =>
+    request<Subscription>(`/subscriptions/${id}/status`, {
+      method: 'PUT', body: JSON.stringify({ status }),
+    }),
+  deleteSubscription: (id: string) =>
+    request<void>(`/subscriptions/${id}`, { method: 'DELETE' }),
+  getProductUsage: (productId: string) =>
+    request<ProductUsageSummary>(`/products/${productId}/usage`),
+  getProductSubscriptions: (productId: string) =>
+    request<Subscription[]>(`/products/${productId}/subscriptions`),
+};
+
 export const agentCoreApi = {
   discoverRuntimes: (gatewayId: string) =>
     request<{ discovered: number; imported: AgentCoreRuntime[] }>('/agentcore/discover/runtimes', {

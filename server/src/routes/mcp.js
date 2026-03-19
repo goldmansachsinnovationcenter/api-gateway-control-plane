@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as mcpService from '../services/mcpService.js';
+import * as planService from '../services/planService.js';
 
 const router = Router();
 
@@ -12,13 +13,40 @@ router.post('/:productId', (req, res) => {
     const { productId } = req.params;
     const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
 
-    // Validate API key
-    if (!mcpService.validateMcpApiKey(productId, apiKey)) {
-      return res.status(401).json({
+    // Check if this is a subscription API key with rate limiting
+    const rateLimitResult = planService.checkRateLimit(apiKey);
+    if (rateLimitResult.allowed === false) {
+      return res.status(429).json({
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Unauthorized: Invalid API key' },
+        error: {
+          code: -32029,
+          message: `Rate limit exceeded: ${rateLimitResult.limitType} limit (${rateLimitResult.current}/${rateLimitResult.limit})`,
+          data: {
+            limitType: rateLimitResult.limitType,
+            limit: rateLimitResult.limit,
+            current: rateLimitResult.current,
+            retryAfter: rateLimitResult.retryAfter
+          }
+        },
         id: req.body.id
-      });
+      }).set('Retry-After', String(rateLimitResult.retryAfter));
+    }
+
+    // If it's a valid subscription key, skip legacy auth; otherwise check legacy
+    if (rateLimitResult.allowed === null) {
+      // Not a subscription key - fall through to legacy product API key auth
+      if (!mcpService.validateMcpApiKey(productId, apiKey)) {
+        return res.status(401).json({
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Unauthorized: Invalid API key' },
+          id: req.body.id
+        });
+      }
+    }
+
+    // Record the request for rate limiting (if subscription key)
+    if (rateLimitResult.allowed === true && rateLimitResult.subscription) {
+      planService.recordRequest(rateLimitResult.subscription.id);
     }
 
     const { method, params, id } = req.body;
