@@ -33,6 +33,15 @@ router.get('/stats', (req, res) => {
   }
 });
 
+// Get all connected tools across all sessions (must be before /:id)
+router.get('/tools/all', (req, res) => {
+  try {
+    res.json(devinAgentService.getAllConnectedTools());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get single session
 router.get('/:id', (req, res) => {
   try {
@@ -51,6 +60,16 @@ router.post('/:id/sync', async (req, res) => {
     res.json(session);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Get connected MCP tools for a session
+router.get('/:id/tools', (req, res) => {
+  try {
+    const tools = devinAgentService.getSessionTools(req.params.id);
+    res.json(tools);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

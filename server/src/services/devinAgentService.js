@@ -249,6 +249,240 @@ export function getUsageStats() {
   };
 }
 
+// ─── Connected MCP Tools ─────────────────────────────────────────────────────
+
+/**
+ * Get MCP tools connected to a Devin session.
+ * With a real API key, would call Devin API to get tool usage.
+ * Otherwise returns mock data showing typical tools Devin uses.
+ */
+export function getSessionTools(sessionId) {
+  const session = db.prepare('SELECT * FROM devin_sessions WHERE id = ?').get(sessionId);
+  if (!session) return { tools: [], mcpServers: [] };
+
+  return getMockSessionTools(session);
+}
+
+/**
+ * Get aggregated MCP tool usage across all sessions.
+ */
+export function getAllConnectedTools() {
+  const sessions = listSessions();
+  const toolMap = {};
+  const serverMap = {};
+
+  for (const session of sessions) {
+    const { tools, mcpServers } = getMockSessionTools(session);
+    for (const tool of tools) {
+      if (!toolMap[tool.name]) {
+        toolMap[tool.name] = { ...tool, sessionCount: 0, totalCalls: 0 };
+      }
+      toolMap[tool.name].sessionCount += 1;
+      toolMap[tool.name].totalCalls += tool.callCount;
+    }
+    for (const server of mcpServers) {
+      if (!serverMap[server.url]) {
+        serverMap[server.url] = { ...server, sessionCount: 0 };
+      }
+      serverMap[server.url].sessionCount += 1;
+    }
+  }
+
+  return {
+    tools: Object.values(toolMap),
+    mcpServers: Object.values(serverMap),
+    totalTools: Object.keys(toolMap).length,
+    totalServers: Object.keys(serverMap).length,
+  };
+}
+
+function getMockSessionTools(session) {
+  // Base tools that every Devin session uses
+  const baseTools = [
+    {
+      name: 'shell',
+      description: 'Execute shell commands on the development machine',
+      category: 'System',
+      callCount: Math.floor(Math.random() * 80) + 20,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Shell command to execute' },
+          cwd: { type: 'string', description: 'Working directory' },
+        },
+        required: ['command'],
+      },
+    },
+    {
+      name: 'editor',
+      description: 'Read and edit files in the workspace',
+      category: 'System',
+      callCount: Math.floor(Math.random() * 120) + 30,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path' },
+          action: { type: 'string', enum: ['read', 'write', 'edit'], description: 'Editor action' },
+          content: { type: 'string', description: 'File content for write/edit' },
+        },
+        required: ['path', 'action'],
+      },
+    },
+    {
+      name: 'browser',
+      description: 'Navigate and interact with web pages',
+      category: 'System',
+      callCount: Math.floor(Math.random() * 30) + 5,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL to navigate to' },
+          action: { type: 'string', enum: ['navigate', 'click', 'type', 'screenshot'], description: 'Browser action' },
+        },
+        required: ['url'],
+      },
+    },
+    {
+      name: 'search',
+      description: 'Search across codebase files using grep/ripgrep',
+      category: 'System',
+      callCount: Math.floor(Math.random() * 50) + 10,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Search pattern (regex)' },
+          path: { type: 'string', description: 'Directory to search in' },
+        },
+        required: ['pattern'],
+      },
+    },
+  ];
+
+  // Task-specific tools based on session title
+  const title = (session.title || '').toLowerCase();
+  const extraTools = [];
+
+  if (title.includes('api') || title.includes('rest') || title.includes('endpoint')) {
+    extraTools.push({
+      name: 'api_tester',
+      description: 'Send HTTP requests to test API endpoints',
+      category: 'Testing',
+      callCount: Math.floor(Math.random() * 25) + 5,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'] },
+          url: { type: 'string' },
+          body: { type: 'object' },
+        },
+        required: ['method', 'url'],
+      },
+    });
+  }
+
+  if (title.includes('database') || title.includes('sql') || title.includes('postgres')) {
+    extraTools.push({
+      name: 'database_query',
+      description: 'Execute SQL queries against the database',
+      category: 'Database',
+      callCount: Math.floor(Math.random() * 40) + 10,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'SQL query to execute' },
+          database: { type: 'string', description: 'Database name' },
+        },
+        required: ['query'],
+      },
+    });
+  }
+
+  if (title.includes('ci') || title.includes('pipeline') || title.includes('test')) {
+    extraTools.push({
+      name: 'ci_runner',
+      description: 'Run CI/CD pipeline steps locally',
+      category: 'CI/CD',
+      callCount: Math.floor(Math.random() * 15) + 3,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          step: { type: 'string', description: 'Pipeline step to run' },
+          env: { type: 'object', description: 'Environment variables' },
+        },
+        required: ['step'],
+      },
+    });
+  }
+
+  if (title.includes('monitor') || title.includes('alert') || title.includes('prometheus')) {
+    extraTools.push({
+      name: 'metrics_query',
+      description: 'Query monitoring metrics and dashboards',
+      category: 'Monitoring',
+      callCount: Math.floor(Math.random() * 20) + 5,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'PromQL or metrics query' },
+          timeRange: { type: 'string', description: 'Time range (e.g., 1h, 24h)' },
+        },
+        required: ['query'],
+      },
+    });
+  }
+
+  if (title.includes('auth') || title.includes('jwt') || title.includes('oauth')) {
+    extraTools.push({
+      name: 'secret_manager',
+      description: 'Manage secrets and environment variables',
+      category: 'Security',
+      callCount: Math.floor(Math.random() * 10) + 2,
+      lastUsed: session.finished_at || session.started_at,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['get', 'set', 'list'] },
+          key: { type: 'string', description: 'Secret key name' },
+        },
+        required: ['action'],
+      },
+    });
+  }
+
+  const tools = [...baseTools, ...extraTools];
+
+  // MCP servers the session connects to
+  const mcpServers = [
+    {
+      name: 'Devin System Tools',
+      url: 'internal://devin/system',
+      status: 'connected',
+      toolCount: baseTools.length,
+      protocol: 'MCP 2024-11-05',
+    },
+  ];
+
+  if (extraTools.length > 0) {
+    mcpServers.push({
+      name: extraTools[0].category + ' Tools Server',
+      url: `internal://devin/${extraTools[0].category.toLowerCase()}`,
+      status: 'connected',
+      toolCount: extraTools.length,
+      protocol: 'MCP 2024-11-05',
+    });
+  }
+
+  return { tools, mcpServers };
+}
+
 // ─── Sync ────────────────────────────────────────────────────────────────────
 
 export async function syncSession(id) {

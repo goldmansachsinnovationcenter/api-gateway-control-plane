@@ -854,6 +854,42 @@ export interface DevinUsageStats {
   dailyUsage: Array<{ date: string; sessions: number; tokens: number }>;
 }
 
+export interface DevinTool {
+  name: string;
+  description: string;
+  category: string;
+  callCount: number;
+  lastUsed: string | null;
+  sessionCount?: number;
+  totalCalls?: number;
+  inputSchema: {
+    type: string;
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+export interface DevinMcpServer {
+  name: string;
+  url: string;
+  status: string;
+  toolCount: number;
+  protocol: string;
+  sessionCount?: number;
+}
+
+export interface DevinSessionTools {
+  tools: DevinTool[];
+  mcpServers: DevinMcpServer[];
+}
+
+export interface DevinAllTools {
+  tools: DevinTool[];
+  mcpServers: DevinMcpServer[];
+  totalTools: number;
+  totalServers: number;
+}
+
 export const devinAgentsApi = {
   discover: (apiKey?: string) =>
     request<{ discovered: number; sessions: DevinSession[] }>('/devin-agents/discover', {
@@ -863,6 +899,8 @@ export const devinAgentsApi = {
   list: () => request<DevinSession[]>('/devin-agents'),
   get: (id: string) => request<DevinSession>(`/devin-agents/${id}`),
   stats: () => request<DevinUsageStats>('/devin-agents/stats'),
+  getSessionTools: (id: string) => request<DevinSessionTools>(`/devin-agents/${id}/tools`),
+  getAllTools: () => request<DevinAllTools>('/devin-agents/tools/all'),
   sync: (id: string) => request<DevinSession>(`/devin-agents/${id}/sync`, { method: 'POST' }),
   delete: (id: string) => request<void>(`/devin-agents/${id}`, { method: 'DELETE' }),
 };

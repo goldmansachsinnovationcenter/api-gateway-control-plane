@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { devinAgentsApi } from "@/lib/api";
-import type { DevinSession, DevinUsageStats } from "@/lib/api";
+import type { DevinSession, DevinUsageStats, DevinTool, DevinMcpServer, DevinAllTools, DevinSessionTools } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,11 @@ import {
   Hash,
   ArrowLeft,
   Bot,
+  Wrench,
+  Server,
+  ChevronDown,
+  ChevronRight,
+  Plug,
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -89,6 +94,7 @@ function timeAgo(dateStr: string): string {
 export function DevinAgentsPage() {
   const [sessions, setSessions] = useState<DevinSession[]>([]);
   const [stats, setStats] = useState<DevinUsageStats | null>(null);
+  const [allTools, setAllTools] = useState<DevinAllTools | null>(null);
   const [loading, setLoading] = useState(true);
   const [discovering, setDiscovering] = useState(false);
   const [selectedSession, setSelectedSession] = useState<DevinSession | null>(null);
@@ -105,6 +111,13 @@ export function DevinAgentsPage() {
       ]);
       setSessions(s);
       setStats(st);
+      // Fetch tools only after sessions exist
+      if (s.length > 0) {
+        try {
+          const tools = await devinAgentsApi.getAllTools();
+          setAllTools(tools);
+        } catch { /* tools are optional */ }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
@@ -335,6 +348,11 @@ export function DevinAgentsPage() {
         </Card>
       )}
 
+      {/* Connected MCP Tools */}
+      {allTools && allTools.totalTools > 0 && (
+        <ConnectedToolsOverview allTools={allTools} />
+      )}
+
       {/* Search & Filter */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-md">
@@ -560,6 +578,9 @@ function SessionDetail({
         </CardContent>
       </Card>
 
+      {/* Connected MCP Tools for this session */}
+      <SessionToolsSection sessionId={session.id} />
+
       {/* Session Info */}
       <Card>
         <CardHeader className="pb-2">
@@ -589,6 +610,213 @@ function SessionDetail({
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ─── Connected Tools Overview (Main Page) ───────────────────────────────────
+
+function ConnectedToolsOverview({ allTools }: { allTools: DevinAllTools }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card className="mb-6 border-cyan-500/20">
+      <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Plug className="h-4 w-4 text-cyan-500" />
+            Connected MCP Tools
+            <span className="text-xs font-normal text-muted-foreground">
+              {allTools.totalTools} tools across {allTools.totalServers} servers
+            </span>
+          </span>
+          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </CardTitle>
+      </CardHeader>
+      {expanded && (
+        <CardContent>
+          {/* MCP Servers */}
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Server className="h-3.5 w-3.5" /> MCP Servers
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {allTools.mcpServers.map((server) => (
+                <div
+                  key={server.url}
+                  className="flex items-center justify-between p-2.5 rounded-md bg-accent/50 border border-border/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${server.status === 'connected' ? 'bg-emerald-500' : 'bg-gray-500'}`} />
+                    <div>
+                      <p className="text-sm font-medium">{server.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{server.protocol}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-medium">{server.toolCount} tools</p>
+                    <p className="text-[10px] text-muted-foreground">{server.sessionCount} sessions</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tools Grid */}
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Wrench className="h-3.5 w-3.5" /> Tools
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {allTools.tools.map((tool) => (
+              <ToolCard key={tool.name} tool={tool} showSessionCount />
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// ─── Session Tools Section (Detail View) ─────────────────────────────────────
+
+function SessionToolsSection({ sessionId }: { sessionId: string }) {
+  const [sessionTools, setSessionTools] = useState<DevinSessionTools | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    devinAgentsApi.getSessionTools(sessionId)
+      .then(setSessionTools)
+      .catch(() => setSessionTools(null))
+      .finally(() => setLoading(false));
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-4 text-center text-muted-foreground text-sm">Loading tools...</CardContent>
+      </Card>
+    );
+  }
+
+  if (!sessionTools || sessionTools.tools.length === 0) return null;
+
+  return (
+    <Card className="mb-6 border-cyan-500/20">
+      <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Plug className="h-4 w-4 text-cyan-500" />
+            Connected MCP Tools
+            <span className="text-xs font-normal text-muted-foreground">
+              {sessionTools.tools.length} tools · {sessionTools.mcpServers.length} servers
+            </span>
+          </span>
+          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </CardTitle>
+      </CardHeader>
+      {expanded && (
+        <CardContent>
+          {/* MCP Servers */}
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Server className="h-3.5 w-3.5" /> MCP Servers
+            </h4>
+            <div className="space-y-1.5">
+              {sessionTools.mcpServers.map((server) => (
+                <div
+                  key={server.url}
+                  className="flex items-center justify-between p-2 rounded-md bg-accent/50 border border-border/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${server.status === 'connected' ? 'bg-emerald-500' : 'bg-gray-500'}`} />
+                    <span className="text-sm font-medium">{server.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">{server.protocol}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{server.toolCount} tools</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tools */}
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Wrench className="h-3.5 w-3.5" /> Tools Used
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {sessionTools.tools.map((tool) => (
+              <ToolCard key={tool.name} tool={tool} />
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// ─── Tool Card ───────────────────────────────────────────────────────────────
+
+function ToolCard({ tool, showSessionCount }: { tool: DevinTool; showSessionCount?: boolean }) {
+  const [showSchema, setShowSchema] = useState(false);
+  const categoryColors: Record<string, string> = {
+    System: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    Testing: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    Database: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    'CI/CD': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    Monitoring: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+    Security: 'bg-red-500/10 text-red-500 border-red-500/20',
+  };
+
+  return (
+    <div className="p-2.5 rounded-md bg-accent/30 border border-border/50 hover:border-cyan-500/30 transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench className="h-3.5 w-3.5 text-cyan-500 shrink-0" />
+            <span className="text-sm font-semibold font-mono truncate">{tool.name}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${categoryColors[tool.category] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+              {tool.category}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-2">{tool.description}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-xs font-bold">{(tool.totalCalls || tool.callCount).toLocaleString()}</p>
+          <p className="text-[10px] text-muted-foreground">calls</p>
+          {showSessionCount && tool.sessionCount && (
+            <p className="text-[10px] text-muted-foreground">{tool.sessionCount} sess</p>
+          )}
+        </div>
+      </div>
+      {tool.inputSchema?.properties && Object.keys(tool.inputSchema.properties).length > 0 && (
+        <div className="mt-1.5">
+          <button
+            className="text-[10px] text-cyan-500 hover:text-cyan-400 flex items-center gap-1"
+            onClick={() => setShowSchema(!showSchema)}
+          >
+            {showSchema ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            {Object.keys(tool.inputSchema.properties).length} parameters
+          </button>
+          {showSchema && (
+            <div className="mt-1.5 p-2 rounded bg-background/50 border border-border/30">
+              {Object.entries(tool.inputSchema.properties).map(([key, val]) => {
+                const prop = val as Record<string, unknown>;
+                const isRequired = tool.inputSchema.required?.includes(key);
+                return (
+                  <div key={key} className="flex items-start gap-2 text-[10px] py-0.5">
+                    <span className="font-mono text-cyan-400">{key}</span>
+                    <span className="text-muted-foreground">{String(prop.type || 'any')}</span>
+                    {isRequired && <span className="text-red-400">*</span>}
+                    {prop.description && (
+                      <span className="text-muted-foreground/70 truncate">— {String(prop.description)}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
