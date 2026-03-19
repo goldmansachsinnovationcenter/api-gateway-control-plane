@@ -13,6 +13,7 @@ import { LifecyclePage } from "@/pages/LifecyclePage";
 import { AuditLogPage } from "@/pages/AuditLogPage";
 import { RiskDashboardPage } from "@/pages/RiskDashboardPage";
 import { ReportsPage } from "@/pages/ReportsPage";
+import { AgentHubPage } from "@/pages/AgentHubPage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/apis" element={<ApisPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/mcp" element={<McpTestingPage />} />
+          <Route path="/agent-hub" element={<AgentHubPage />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/cloud-agents" element={<CloudAgentsPage />} />
           <Route path="/agentcore" element={<AgentCorePage />} />

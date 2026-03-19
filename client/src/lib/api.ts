@@ -651,3 +651,51 @@ export const governanceApi = {
     request<ApiStandard>(`/governance/standards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteStandard: (id: string) => request<void>(`/governance/standards/${id}`, { method: 'DELETE' }),
 };
+
+// ─── Agent Hub ──────────────────────────────────────────────────────────────
+
+export interface AgentHubEntry {
+  id: string;
+  name: string;
+  description: string;
+  type: 'local' | 'bedrock' | 'agentcore';
+  provider: string;
+  status: string;
+  model: string;
+  region: string | null;
+  linkedProduct: string | null;
+  linkedProductId: string | null;
+  enabled: boolean;
+  totalCalls: number;
+  successRate: number;
+  avgResponseMs: number;
+  lastActive: string | null;
+  createdAt: string;
+  updatedAt: string;
+  details: Record<string, unknown>;
+}
+
+export interface AgentHubSummary {
+  total: number;
+  local: number;
+  bedrock: number;
+  agentcore: number;
+  active: number;
+  inactive: number;
+  totalCalls: number;
+  avgSuccessRate: number;
+  providers: {
+    local: number;
+    bedrock: number;
+    agentcore: number;
+  };
+}
+
+export interface AgentHubResponse {
+  agents: AgentHubEntry[];
+  summary: AgentHubSummary;
+}
+
+export const agentHubApi = {
+  getAll: () => request<AgentHubResponse>('/agent-hub'),
+};

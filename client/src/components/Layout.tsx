@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
   ChevronDown, ChevronRight, Monitor, Globe, FileText,
-  Clock, Activity, BarChart3, Tag,
+  Clock, Activity, BarChart3, Tag, Zap,
 } from "lucide-react";
 
 // Collapsible nav section
@@ -122,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const path = location.pathname;
 
-  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore";
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub";
   const isCloudActive = path === "/cloud-agents" || path === "/agentcore";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
   const isGovernanceActive = path === "/governance" || path === "/governance/policies" || path === "/governance/lifecycle" || path === "/governance/audit-log" || path === "/governance/risk" || path === "/governance/reports";
@@ -147,6 +147,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Agents Section */}
           <NavSection label="Agents" icon={Bot} defaultOpen={isAgentsActive} isActive={isAgentsActive}>
+            <NavLink path="/agent-hub" label="Agent Hub" icon={Zap} currentPath={path} size="small" />
             <NavLink path="/agents" label="Local Agents" icon={Monitor} currentPath={path} size="small" />
 
             <NavSubSection label="Cloud Agents" icon={Cloud} defaultOpen={isCloudActive} isActive={isCloudActive}>
