@@ -36,6 +36,9 @@ export function GatewaysPage() {
   const [formApiKey, setFormApiKey] = useState("");
   const [formAccountId, setFormAccountId] = useState("");
   const [formRestApiId, setFormRestApiId] = useState("");
+  const [formAccessKeyId, setFormAccessKeyId] = useState("");
+  const [formSecretAccessKey, setFormSecretAccessKey] = useState("");
+  const [formStageName, setFormStageName] = useState("");
 
   const fetchGateways = useCallback(async () => {
     try {
@@ -62,6 +65,9 @@ export function GatewaysPage() {
         config.region = formRegion;
         config.accountId = formAccountId;
         config.restApiId = formRestApiId;
+        if (formAccessKeyId) config.accessKeyId = formAccessKeyId;
+        if (formSecretAccessKey) config.secretAccessKey = formSecretAccessKey;
+        if (formStageName) config.stageName = formStageName;
       } else if (formType === "kong") {
         config.adminUrl = formAdminUrl;
         config.apiKey = formApiKey;
@@ -98,6 +104,9 @@ export function GatewaysPage() {
     setFormApiKey("");
     setFormAccountId("");
     setFormRestApiId("");
+    setFormAccessKeyId("");
+    setFormSecretAccessKey("");
+    setFormStageName("");
   };
 
   return (
@@ -212,6 +221,34 @@ export function GatewaysPage() {
                 value={formRestApiId}
                 onChange={(e) => setFormRestApiId(e.target.value)}
               />
+              <Input
+                label="Stage Name (optional, defaults to prod)"
+                id="gw-stage"
+                placeholder="prod"
+                value={formStageName}
+                onChange={(e) => setFormStageName(e.target.value)}
+              />
+              <div className="border-t border-border pt-4 mt-2">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Provide AWS credentials to connect to a real API Gateway. Leave blank to use demo data.
+                </p>
+                <Input
+                  label="AWS Access Key ID (optional)"
+                  id="gw-access-key"
+                  placeholder="AKIAIOSFODNN7EXAMPLE"
+                  value={formAccessKeyId}
+                  onChange={(e) => setFormAccessKeyId(e.target.value)}
+                />
+                <Input
+                  label="AWS Secret Access Key (optional)"
+                  id="gw-secret-key"
+                  type="password"
+                  placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                  value={formSecretAccessKey}
+                  onChange={(e) => setFormSecretAccessKey(e.target.value)}
+                  className="mt-4"
+                />
+              </div>
             </>
           )}
 

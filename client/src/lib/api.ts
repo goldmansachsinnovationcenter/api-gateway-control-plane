@@ -19,6 +19,9 @@ export interface GatewayConfig {
   apiKey?: string;
   accountId?: string;
   restApiId?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  stageName?: string;
 }
 
 export interface Gateway {

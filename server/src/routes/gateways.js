@@ -25,7 +25,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Register a new gateway
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, type, config } = req.body;
     if (!name || !type) {
@@ -34,7 +34,7 @@ router.post('/', (req, res) => {
     if (!['aws', 'kong', 'custom'].includes(type)) {
       return res.status(400).json({ error: 'Type must be aws, kong, or custom' });
     }
-    const result = gatewayService.registerGateway(name, type, config || {});
+    const result = await gatewayService.registerGateway(name, type, config || {});
     res.status(201).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,10 +1,157 @@
 import db from '../models/database.js';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  APIGatewayClient,
+  GetRestApisCommand,
+  GetResourcesCommand,
+  GetExportCommand,
+  GetStagesCommand,
+} from '@aws-sdk/client-api-gateway';
 
 /**
- * Simulates discovering APIs from different gateway types.
- * In production, these would make real API calls to the gateway admin APIs.
+ * Discovers APIs from a real AWS API Gateway using the AWS SDK.
+ * Requires: accessKeyId, secretAccessKey, region, and optionally restApiId + stageName.
+ * Falls back to mock data if credentials are missing or discovery fails.
  */
+async function discoverRealAwsApis(gatewayId, config) {
+  const parsedConfig = typeof config === 'string' ? JSON.parse(config) : config;
+  const { region, accessKeyId, secretAccessKey, restApiId, stageName } = parsedConfig;
+
+  if (!accessKeyId || !secretAccessKey) {
+    console.log('No AWS credentials provided, using mock data');
+    return null;
+  }
+
+  const client = new APIGatewayClient({
+    region: region || 'us-east-1',
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+
+  try {
+    const apis = [];
+
+    // If a specific REST API ID is provided, discover just that one
+    // Otherwise discover all REST APIs in the account
+    let restApis = [];
+    if (restApiId) {
+      restApis = [{ id: restApiId, name: restApiId }];
+    } else {
+      const listResult = await client.send(new GetRestApisCommand({ limit: 500 }));
+      restApis = listResult.items || [];
+    }
+
+    for (const restApi of restApis) {
+      // Get the OpenAPI export for this REST API if a stage is specified
+      let exportedSpec = null;
+      const resolvedStage = stageName || 'prod';
+
+      try {
+        const exportResult = await client.send(new GetExportCommand({
+          restApiId: restApi.id,
+          stageName: resolvedStage,
+          exportType: 'oas30',
+          accepts: 'application/json',
+        }));
+        if (exportResult.body) {
+          const decoder = new TextDecoder('utf-8');
+          exportedSpec = JSON.parse(decoder.decode(exportResult.body));
+        }
+      } catch (exportErr) {
+        console.log(`Could not export spec for ${restApi.id} stage ${resolvedStage}:`, exportErr.message);
+      }
+
+      // If we got a full OpenAPI spec, extract individual endpoints from it
+      if (exportedSpec && exportedSpec.paths) {
+        const invokeUrl = `https://${restApi.id}.execute-api.${region || 'us-east-1'}.amazonaws.com/${resolvedStage}`;
+
+        for (const [path, pathObj] of Object.entries(exportedSpec.paths)) {
+          const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+          for (const method of httpMethods) {
+            if (pathObj[method]) {
+              const operation = pathObj[method];
+              const endpointSpec = {
+                openapi: '3.0.0',
+                info: {
+                  title: operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`,
+                  version: exportedSpec.info?.version || '1.0.0',
+                },
+                servers: [{ url: invokeUrl }],
+                paths: { [path]: { [method]: operation } },
+              };
+
+              const scores = calculateScores(JSON.stringify(endpointSpec));
+              apis.push({
+                name: operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`,
+                method: method.toUpperCase(),
+                path: path,
+                description: operation.description || operation.summary || `${method.toUpperCase()} ${path}`,
+                spec: JSON.stringify(endpointSpec),
+                security_score: scores.security,
+                quality_score: scores.quality,
+                invoke_url: invokeUrl,
+              });
+            }
+          }
+        }
+      } else {
+        // Fallback: get resources and build basic specs
+        try {
+          const resourcesResult = await client.send(new GetResourcesCommand({
+            restApiId: restApi.id,
+            limit: 500,
+            embed: ['methods'],
+          }));
+
+          const resources = resourcesResult.items || [];
+          for (const resource of resources) {
+            if (!resource.resourceMethods) continue;
+            for (const [method, methodObj] of Object.entries(resource.resourceMethods)) {
+              if (method === 'OPTIONS') continue;
+              const endpointSpec = {
+                openapi: '3.0.0',
+                info: { title: `${method} ${resource.path}`, version: '1.0.0' },
+                paths: {
+                  [resource.path]: {
+                    [method.toLowerCase()]: {
+                      summary: `${method} ${resource.path}`,
+                      responses: { '200': { description: 'Success' } },
+                    },
+                  },
+                },
+              };
+
+              const scores = calculateScores(JSON.stringify(endpointSpec));
+              apis.push({
+                name: `${method} ${resource.path}`,
+                method: method,
+                path: resource.path,
+                description: `${method} ${resource.path} on ${restApi.name || restApi.id}`,
+                spec: JSON.stringify(endpointSpec),
+                security_score: scores.security,
+                quality_score: scores.quality,
+              });
+            }
+          }
+        } catch (resErr) {
+          console.log(`Could not get resources for ${restApi.id}:`, resErr.message);
+        }
+      }
+    }
+
+    if (apis.length === 0) {
+      console.log('No APIs discovered from AWS, falling back to mock data');
+      return null;
+    }
+
+    return apis;
+  } catch (err) {
+    console.error('AWS API Gateway discovery failed:', err.message);
+    return null;
+  }
+}
 
 function generateMockAwsApis(gatewayId, config) {
   const parsedConfig = JSON.parse(config);
@@ -354,15 +501,23 @@ function generateMockKongApis(gatewayId, config) {
   return mockApis;
 }
 
-export function registerGateway(name, type, config) {
+export async function registerGateway(name, type, config) {
   const id = uuidv4();
+
+  // Store config but strip sensitive credentials before persisting
+  const configToStore = { ...config };
+  delete configToStore.accessKeyId;
+  delete configToStore.secretAccessKey;
+
   const stmt = db.prepare('INSERT INTO gateways (id, name, type, config) VALUES (?, ?, ?, ?)');
-  stmt.run(id, name, type, JSON.stringify(config));
+  stmt.run(id, name, type, JSON.stringify(configToStore));
 
   // Discover APIs from the gateway
   let apis = [];
   if (type === 'aws') {
-    apis = generateMockAwsApis(id, JSON.stringify(config));
+    // Try real AWS discovery first, fall back to mock data
+    const realApis = await discoverRealAwsApis(id, config);
+    apis = realApis || generateMockAwsApis(id, JSON.stringify(config));
   } else if (type === 'kong') {
     apis = generateMockKongApis(id, JSON.stringify(config));
   }
