@@ -145,6 +145,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {/* Top-level links */}
           <NavLink path="/" label="Gateways" icon={Server} currentPath={path} />
+          <NavLink path="/apis" label="APIs" icon={Globe} currentPath={path} />
           <NavLink path="/products" label="Products" icon={Package} currentPath={path} />
           <NavLink path="/mcp" label="MCP and Tools" icon={Cpu} currentPath={path} />
 
