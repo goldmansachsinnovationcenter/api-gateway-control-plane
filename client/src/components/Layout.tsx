@@ -21,9 +21,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-6 border-b border-border">
           <h1 className="text-lg font-bold flex items-center gap-2">
             <Cpu className="h-5 w-5 text-primary" />
-            <span>API Control Plane</span>
+            <span>GSIC API Control Plane</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">Gateway & MCP Management</p>
+          <p className="text-xs text-muted-foreground mt-1">Gateway, MCP & Agent Governance</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -50,7 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground">
-            <p>Agent Governance Platform</p>
+            <p>GSIC API Control Plane</p>
             <p className="mt-1">v1.0.0</p>
           </div>
         </div>
