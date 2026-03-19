@@ -124,7 +124,7 @@ export function HomePage() {
         <div className="space-y-6">
           {/* Key Metrics */}
           <div className="grid grid-cols-6 gap-3">
-            <StatCard icon={Server} label="Gateways" value={data.counts.gateways} color="text-blue-400" link="/" />
+            <StatCard icon={Server} label="Gateways" value={data.counts.gateways} color="text-blue-400" link="/gateways" />
             <StatCard icon={Globe} label="APIs" value={data.counts.apis} color="text-emerald-400" link="/apis" />
             <StatCard icon={Package} label="Products" value={data.counts.products} color="text-amber-400" link="/products" />
             <StatCard icon={Bot} label="Agents" value={data.agentStats.total + data.counts.cloudAgents} color="text-purple-400" link="/agent-hub" sub={`${data.agentStats.total} local, ${data.counts.cloudAgents} cloud`} />
@@ -240,8 +240,8 @@ export function HomePage() {
                       icon={Server}
                       label="Register Gateway"
                       description="Connect AWS, Azure, Kong, or other API gateways"
-                      link="/"
-                      color="bg-blue-500"
+                                            link="/gateways"
+                                            color="bg-blue-500"
                     />
                     <QuickAction
                       icon={Globe}
@@ -324,7 +324,7 @@ export function HomePage() {
                         <Server className="h-4 w-4 text-primary" />
                         Recent Gateways
                       </CardTitle>
-                      <Link to="/" className="text-[10px] text-primary hover:underline">View all</Link>
+                      <Link to="/gateways" className="text-[10px] text-primary hover:underline">View all</Link>
                     </div>
                   </CardHeader>
                   <CardContent>
