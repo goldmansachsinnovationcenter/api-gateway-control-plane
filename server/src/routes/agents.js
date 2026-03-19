@@ -100,4 +100,24 @@ router.post('/:id/run-all', (req, res) => {
   }
 });
 
+// Clone an agent
+router.post('/:id/clone', (req, res) => {
+  try {
+    const agent = agentService.cloneAgent(req.params.id);
+    res.status(201).json(agent);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Export agent logs
+router.get('/:id/export', (req, res) => {
+  try {
+    const data = agentService.exportAgentLogs(req.params.id);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

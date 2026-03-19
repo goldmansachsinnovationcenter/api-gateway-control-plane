@@ -109,6 +109,10 @@ export interface Agent {
   product: { id: string; name: string; mcp_enabled: number } | null;
   mcpServer: McpServer | null;
   logCount: number;
+  successCount: number;
+  successRate: number;
+  avgResponseMs: number;
+  lastActive: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -185,4 +189,7 @@ export const agentsApi = {
     request<Array<{ logId: string; tool: string; args: Record<string, unknown>; result: unknown; success: boolean; durationMs: number }>>(
       `/agents/${id}/run-all`, { method: 'POST' }
     ),
+  clone: (id: string) => request<Agent>(`/agents/${id}/clone`, { method: 'POST' }),
+  exportLogs: (id: string) =>
+    request<{ agent: { id: string; name: string }; logs: AgentLog[]; exportedAt: string }>(`/agents/${id}/export`),
 };

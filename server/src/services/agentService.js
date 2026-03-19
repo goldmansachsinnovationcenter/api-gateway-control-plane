@@ -10,17 +10,31 @@ export function createAgent(name, description, productId, model, systemPrompt) {
   return getAgent(id);
 }
 
+function getAgentStats(agentId) {
+  const logCount = db.prepare('SELECT COUNT(*) as count FROM agent_logs WHERE agent_id = ?').get(agentId).count;
+  const successCount = db.prepare('SELECT COUNT(*) as count FROM agent_logs WHERE agent_id = ? AND success = 1').get(agentId).count;
+  const avgDuration = db.prepare('SELECT AVG(duration_ms) as avg FROM agent_logs WHERE agent_id = ?').get(agentId).avg;
+  const lastExec = db.prepare('SELECT created_at FROM agent_logs WHERE agent_id = ? ORDER BY created_at DESC LIMIT 1').get(agentId);
+  return {
+    logCount,
+    successCount,
+    successRate: logCount > 0 ? Math.round((successCount / logCount) * 100) : 0,
+    avgResponseMs: avgDuration ? Math.round(avgDuration) : 0,
+    lastActive: lastExec?.created_at || null,
+  };
+}
+
 export function listAgents() {
   const agents = db.prepare('SELECT * FROM agents ORDER BY created_at DESC').all();
   return agents.map(agent => {
     const product = agent.product_id
       ? db.prepare('SELECT id, name, mcp_enabled FROM products WHERE id = ?').get(agent.product_id)
       : null;
-    const logCount = db.prepare('SELECT COUNT(*) as count FROM agent_logs WHERE agent_id = ?').get(agent.id).count;
+    const stats = getAgentStats(agent.id);
     const mcpServer = agent.product_id
       ? db.prepare('SELECT * FROM mcp_servers WHERE product_id = ?').get(agent.product_id)
       : null;
-    return { ...agent, product, logCount, mcpServer };
+    return { ...agent, product, ...stats, mcpServer };
   });
 }
 
@@ -33,8 +47,8 @@ export function getAgent(id) {
   const mcpServer = agent.product_id
     ? db.prepare('SELECT * FROM mcp_servers WHERE product_id = ?').get(agent.product_id)
     : null;
-  const logCount = db.prepare('SELECT COUNT(*) as count FROM agent_logs WHERE agent_id = ?').get(id).count;
-  return { ...agent, product, mcpServer, logCount };
+  const stats = getAgentStats(id);
+  return { ...agent, product, mcpServer, ...stats };
 }
 
 export function updateAgent(id, updates) {
@@ -169,4 +183,21 @@ function buildSampleArgs(schema) {
 
 export function clearAgentLogs(agentId) {
   db.prepare('DELETE FROM agent_logs WHERE agent_id = ?').run(agentId);
+}
+
+export function cloneAgent(id) {
+  const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(id);
+  if (!agent) throw new Error('Agent not found');
+  const newId = uuidv4();
+  db.prepare(
+    'INSERT INTO agents (id, name, description, product_id, model, system_prompt) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(newId, `${agent.name} (Copy)`, agent.description, agent.product_id, agent.model, agent.system_prompt);
+  return getAgent(newId);
+}
+
+export function exportAgentLogs(agentId, format = 'json') {
+  const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(agentId);
+  if (!agent) throw new Error('Agent not found');
+  const logs = db.prepare('SELECT * FROM agent_logs WHERE agent_id = ? ORDER BY created_at DESC').all(agentId);
+  return { agent: { id: agent.id, name: agent.name }, logs, exportedAt: new Date().toISOString() };
 }
