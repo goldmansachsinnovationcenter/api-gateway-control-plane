@@ -16,6 +16,7 @@ import { ReportsPage } from "@/pages/ReportsPage";
 import { AgentHubPage } from "@/pages/AgentHubPage";
 import { SalesforceAgentsPage } from "@/pages/SalesforceAgentsPage";
 import { CopilotAgentsPage } from "@/pages/CopilotAgentsPage";
+import { DevinAgentsPage } from "@/pages/DevinAgentsPage";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/agentcore" element={<AgentCorePage />} />
           <Route path="/salesforce-agents" element={<SalesforceAgentsPage />} />
           <Route path="/copilot-agents" element={<CopilotAgentsPage />} />
+          <Route path="/devin-agents" element={<DevinAgentsPage />} />
           <Route path="/governance" element={<GovernancePage />} />
           <Route path="/governance/policies" element={<PoliciesPage />} />
           <Route path="/governance/lifecycle" element={<LifecyclePage />} />

@@ -374,6 +374,24 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS devin_sessions (
+    id TEXT PRIMARY KEY,
+    devin_session_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    status TEXT DEFAULT 'finished',
+    created_by TEXT,
+    token_usage INTEGER DEFAULT 0,
+    prompt_tokens INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    model TEXT DEFAULT 'devin-1.0',
+    duration_seconds INTEGER DEFAULT 0,
+    session_url TEXT,
+    started_at TEXT,
+    finished_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_policy_violations_lookup ON policy_violations(policy_id, status);
   CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);

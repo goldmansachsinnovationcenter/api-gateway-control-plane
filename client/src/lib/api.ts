@@ -819,6 +819,54 @@ export const copilotAgentsApi = {
   delete: (id: string) => request<void>(`/copilot-agents/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Devin Agents ────────────────────────────────────────────────────────────
+
+export interface DevinSession {
+  id: string;
+  devin_session_id: string;
+  title: string;
+  status: string;
+  created_by: string;
+  token_usage: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  model: string;
+  duration_seconds: number;
+  session_url: string;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DevinUsageStats {
+  totalSessions: number;
+  totalTokens: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalDurationSeconds: number;
+  avgTokensPerSession: number;
+  avgDurationSeconds: number;
+  uniqueUsers: number;
+  users: string[];
+  statusCounts: Record<string, number>;
+  userStats: Record<string, { sessions: number; tokens: number; duration: number }>;
+  dailyUsage: Array<{ date: string; sessions: number; tokens: number }>;
+}
+
+export const devinAgentsApi = {
+  discover: (apiKey?: string) =>
+    request<{ discovered: number; sessions: DevinSession[] }>('/devin-agents/discover', {
+      method: 'POST',
+      body: JSON.stringify({ apiKey }),
+    }),
+  list: () => request<DevinSession[]>('/devin-agents'),
+  get: (id: string) => request<DevinSession>(`/devin-agents/${id}`),
+  stats: () => request<DevinUsageStats>('/devin-agents/stats'),
+  sync: (id: string) => request<DevinSession>(`/devin-agents/${id}/sync`, { method: 'POST' }),
+  delete: (id: string) => request<void>(`/devin-agents/${id}`, { method: 'DELETE' }),
+};
+
 // MCP Discovery types
 export interface McpDiscoveredTool {
   name: string;

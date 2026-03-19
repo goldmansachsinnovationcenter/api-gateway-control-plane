@@ -4,6 +4,7 @@ import * as bedrockAgentService from '../services/bedrockAgentService.js';
 import * as agentCoreService from '../services/agentCoreService.js';
 import * as salesforceAgentService from '../services/salesforceAgentService.js';
 import * as copilotAgentService from '../services/copilotAgentService.js';
+import * as devinAgentService from '../services/devinAgentService.js';
 
 const router = Router();
 
@@ -152,7 +153,37 @@ router.get('/', (req, res) => {
       },
     }));
 
-    const allAgents = [...localAgents, ...cloudAgents, ...runtimes, ...sfAgents, ...azureAgents];
+    // Devin agents
+    const devinSessions = devinAgentService.listSessions().map(session => ({
+      id: session.id,
+      name: session.title,
+      description: `Session by ${session.created_by || 'unknown'} — ${session.token_usage?.toLocaleString() || 0} tokens`,
+      type: 'devin',
+      provider: 'Devin AI',
+      status: session.status || 'finished',
+      model: session.model || 'devin-1.0',
+      region: null,
+      linkedProduct: null,
+      linkedProductId: null,
+      enabled: session.status === 'running',
+      totalCalls: 1,
+      successRate: session.status === 'finished' ? 100 : session.status === 'blocked' ? 0 : 50,
+      avgResponseMs: (session.duration_seconds || 0) * 1000,
+      lastActive: session.finished_at || session.started_at,
+      createdAt: session.created_at,
+      updatedAt: session.updated_at,
+      details: {
+        devinSessionId: session.devin_session_id,
+        createdBy: session.created_by,
+        tokenUsage: session.token_usage,
+        promptTokens: session.prompt_tokens,
+        completionTokens: session.completion_tokens,
+        durationSeconds: session.duration_seconds,
+        sessionUrl: session.session_url,
+      },
+    }));
+
+    const allAgents = [...localAgents, ...cloudAgents, ...runtimes, ...sfAgents, ...azureAgents, ...devinSessions];
 
     // Summary stats
     const summary = {
@@ -162,6 +193,7 @@ router.get('/', (req, res) => {
       agentcore: runtimes.length,
       salesforce: sfAgents.length,
       copilot: azureAgents.length,
+      devin: devinSessions.length,
       active: allAgents.filter(a => a.enabled).length,
       inactive: allAgents.filter(a => !a.enabled).length,
       totalCalls: allAgents.reduce((sum, a) => sum + a.totalCalls, 0),
@@ -174,6 +206,7 @@ router.get('/', (req, res) => {
         agentcore: runtimes.length,
         salesforce: sfAgents.length,
         copilot: azureAgents.length,
+        devin: devinSessions.length,
       },
     };
 

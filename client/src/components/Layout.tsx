@@ -122,8 +122,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const path = location.pathname;
 
-  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents";
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents";
   const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents";
+  const isDevinActive = path === "/devin-agents";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
   const isSalesforceActive = path === "/salesforce-agents";
   const isCopilotActive = path === "/copilot-agents";
@@ -159,6 +160,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavSubSection>
               <NavLink path="/salesforce-agents" label="Salesforce" icon={Cloud} currentPath={path} size="small" />
               <NavLink path="/copilot-agents" label="Microsoft" icon={Building2} currentPath={path} size="small" />
+              <NavLink path="/devin-agents" label="Devin" icon={Bot} currentPath={path} size="small" />
             </NavSubSection>
           </NavSection>
 
