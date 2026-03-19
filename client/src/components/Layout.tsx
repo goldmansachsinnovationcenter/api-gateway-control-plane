@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
   ChevronDown, ChevronRight, Monitor, Globe, FileText,
-  Clock, Activity, BarChart3, Tag, Zap, Building2,
+  Clock, Activity, BarChart3, Tag, Zap, Building2, Settings,
 } from "lucide-react";
 
 // Collapsible nav section
@@ -148,7 +148,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <NavLink path="/apis" label="APIs" icon={Globe} currentPath={path} />
           <NavLink path="/products" label="Products" icon={Package} currentPath={path} />
           <NavLink path="/mcp" label="MCP and Tools" icon={Cpu} currentPath={path} />
-
           {/* Agents Section */}
           <NavSection label="Agents" icon={Bot} defaultOpen={isAgentsActive} isActive={isAgentsActive}>
             <NavLink path="/agent-hub" label="Agent Hub" icon={Zap} currentPath={path} size="small" />
@@ -176,6 +175,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink path="/governance/risk" label="Risk Assessment" icon={Activity} currentPath={path} size="small" />
             <NavLink path="/governance/reports" label="Reports" icon={BarChart3} currentPath={path} size="small" />
           </NavSection>
+
+          {/* Settings */}
+          <NavLink path="/settings" label="Settings" icon={Settings} currentPath={path} />
         </nav>
 
         <div className="p-4 border-t border-border">

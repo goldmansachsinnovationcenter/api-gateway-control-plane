@@ -19,6 +19,7 @@ import { CopilotAgentsPage } from "@/pages/CopilotAgentsPage";
 import { DevinAgentsPage } from "@/pages/DevinAgentsPage";
 import { ClaudeAgentsPage } from "@/pages/ClaudeAgentsPage";
 import { AgentGovernanceDashboard } from "@/pages/AgentGovernanceDashboard";
+import { SettingsPage } from "@/pages/SettingsPage";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           <Route path="/governance/audit-log" element={<AuditLogPage />} />
           <Route path="/governance/risk" element={<RiskDashboardPage />} />
           <Route path="/governance/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

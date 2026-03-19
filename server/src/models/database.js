@@ -456,6 +456,125 @@ try {
   console.log('Agent columns migration note:', agentMigrationErr.message);
 }
 
+// Settings tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    role TEXT DEFAULT 'viewer' CHECK(role IN ('admin', 'editor', 'viewer', 'operator')),
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'suspended')),
+    avatar TEXT,
+    last_login TEXT,
+    mfa_enabled INTEGER DEFAULT 0,
+    notification_preferences TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    key_prefix TEXT NOT NULL,
+    key_hash TEXT NOT NULL,
+    user_id TEXT,
+    scopes TEXT DEFAULT '["read"]',
+    rate_limit INTEGER DEFAULT 1000,
+    expires_at TEXT,
+    last_used TEXT,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'revoked', 'expired')),
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    category TEXT DEFAULT 'general',
+    description TEXT,
+    updated_at TEXT DEFAULT (datetime('now')),
+    updated_by TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_settings_log (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    user_name TEXT,
+    action TEXT NOT NULL,
+    category TEXT,
+    details TEXT DEFAULT '{}',
+    ip_address TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS webhooks (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    events TEXT DEFAULT '[]',
+    secret TEXT,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+    last_triggered TEXT,
+    failure_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
+// Seed default admin user if no users exist
+try {
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+  if (userCount.count === 0) {
+    const { v4: uuidv4 } = await import('uuid');
+    db.prepare(`INSERT INTO users (id, email, name, role, status) VALUES (?, ?, ?, ?, ?)`).run(
+      uuidv4(), 'admin@gsic.local', 'System Admin', 'admin', 'active'
+    );
+  }
+} catch (seedErr) {
+  console.log('User seed note:', seedErr.message);
+}
+
+// Seed default app settings if none exist
+try {
+  const settingsCount = db.prepare('SELECT COUNT(*) as count FROM app_settings').get();
+  if (settingsCount.count === 0) {
+    const defaults = [
+      ['app.name', 'GSIC API Control Plane', 'general', 'Application display name'],
+      ['app.description', 'Gateway, MCP & Agent Governance', 'general', 'Application description'],
+      ['app.timezone', 'UTC', 'general', 'Default timezone'],
+      ['app.date_format', 'YYYY-MM-DD HH:mm:ss', 'general', 'Default date format'],
+      ['app.pagination_size', '25', 'general', 'Default page size for lists'],
+      ['security.session_timeout', '3600', 'security', 'Session timeout in seconds'],
+      ['security.max_login_attempts', '5', 'security', 'Max failed login attempts before lockout'],
+      ['security.password_min_length', '8', 'security', 'Minimum password length'],
+      ['security.require_mfa', 'false', 'security', 'Require MFA for all users'],
+      ['security.allowed_origins', '*', 'security', 'CORS allowed origins'],
+      ['security.ip_whitelist', '', 'security', 'IP whitelist (comma-separated, empty = allow all)'],
+      ['notifications.email_enabled', 'false', 'notifications', 'Enable email notifications'],
+      ['notifications.smtp_host', '', 'notifications', 'SMTP server host'],
+      ['notifications.smtp_port', '587', 'notifications', 'SMTP server port'],
+      ['notifications.smtp_user', '', 'notifications', 'SMTP username'],
+      ['notifications.webhook_enabled', 'false', 'notifications', 'Enable webhook notifications'],
+      ['notifications.slack_enabled', 'false', 'notifications', 'Enable Slack notifications'],
+      ['notifications.slack_webhook_url', '', 'notifications', 'Slack webhook URL'],
+      ['appearance.theme', 'dark', 'appearance', 'UI theme (dark/light/system)'],
+      ['appearance.sidebar_collapsed', 'false', 'appearance', 'Default sidebar state'],
+      ['appearance.logo_url', '', 'appearance', 'Custom logo URL'],
+      ['appearance.primary_color', '#3b82f6', 'appearance', 'Primary brand color'],
+      ['data.retention_days', '90', 'data', 'Data retention period in days'],
+      ['data.auto_cleanup', 'true', 'data', 'Enable automatic data cleanup'],
+      ['data.backup_enabled', 'false', 'data', 'Enable automatic backups'],
+      ['data.backup_interval', '24', 'data', 'Backup interval in hours'],
+    ];
+    const stmt = db.prepare('INSERT INTO app_settings (key, value, category, description) VALUES (?, ?, ?, ?)');
+    for (const d of defaults) {
+      stmt.run(...d);
+    }
+  }
+} catch (settingsSeedErr) {
+  console.log('Settings seed note:', settingsSeedErr.message);
+}
+
 // Migration: expand gateway type CHECK constraint to include new providers
 try {
   const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='gateways'").get();

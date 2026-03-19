@@ -1145,3 +1145,123 @@ export const mcpDiscoveryApi = {
   getConnection: (id: string) => request<McpConnection>(`/mcp-discovery/connections/${id}`),
   deleteConnection: (id: string) => request<void>(`/mcp-discovery/connections/${id}`, { method: 'DELETE' }),
 };
+
+// ==================== SETTINGS ====================
+
+export interface SettingsUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'editor' | 'viewer' | 'operator';
+  status: 'active' | 'inactive' | 'suspended';
+  avatar: string | null;
+  last_login: string | null;
+  mfa_enabled: number;
+  notification_preferences: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SettingsApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  key_hash: string;
+  key?: string;
+  user_id: string | null;
+  user_name?: string;
+  user_email?: string;
+  scopes: string[];
+  rate_limit: number;
+  expires_at: string | null;
+  last_used: string | null;
+  status: 'active' | 'revoked' | 'expired';
+  created_at: string;
+}
+
+export interface AppSetting {
+  key: string;
+  value: string;
+  category: string;
+  description: string;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface SettingsWebhook {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  secret: string;
+  status: 'active' | 'inactive';
+  last_triggered: string | null;
+  failure_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SettingsAuditEntry {
+  id: string;
+  user_id: string | null;
+  user_name: string;
+  action: string;
+  category: string | null;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface SystemInfo {
+  version: string;
+  environment: string;
+  uptime: number;
+  nodeVersion: string;
+  platform: string;
+  memoryUsage: { rss: number; heapTotal: number; heapUsed: number; external: number };
+  databaseSize: number;
+  tableCounts: Record<string, number>;
+}
+
+export const settingsApi = {
+  // Users
+  listUsers: () => request<SettingsUser[]>('/settings/users'),
+  getUserStats: () => request<{ total: number; active: number; inactive: number; admins: number; mfaEnabled: number }>('/settings/users/stats'),
+  getUser: (id: string) => request<SettingsUser>(`/settings/users/${id}`),
+  createUser: (data: { email: string; name: string; role?: string }) =>
+    request<SettingsUser>('/settings/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: string, data: Partial<SettingsUser>) =>
+    request<SettingsUser>(`/settings/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id: string) => request<{ success: boolean }>(`/settings/users/${id}`, { method: 'DELETE' }),
+
+  // API Keys
+  listApiKeys: () => request<SettingsApiKey[]>('/settings/api-keys'),
+  createApiKey: (data: { name: string; userId?: string; scopes?: string[]; rateLimit?: number; expiresAt?: string }) =>
+    request<SettingsApiKey & { key: string }>('/settings/api-keys', { method: 'POST', body: JSON.stringify(data) }),
+  revokeApiKey: (id: string) => request<SettingsApiKey>(`/settings/api-keys/${id}/revoke`, { method: 'POST' }),
+  deleteApiKey: (id: string) => request<{ success: boolean }>(`/settings/api-keys/${id}`, { method: 'DELETE' }),
+
+  // App Settings
+  getAllSettings: () => request<Record<string, AppSetting[]>>('/settings/app'),
+  getSettingsByCategory: (category: string) => request<AppSetting[]>(`/settings/app/${category}`),
+  updateSetting: (key: string, value: string, updatedBy?: string) =>
+    request<AppSetting>(`/settings/app/setting/${key}`, { method: 'PUT', body: JSON.stringify({ value, updatedBy }) }),
+  updateSettingsBatch: (updates: Array<{ key: string; value: string }>, updatedBy?: string) =>
+    request<Array<{ key: string; value: string }>>('/settings/app', { method: 'PUT', body: JSON.stringify({ updates, updatedBy }) }),
+
+  // Webhooks
+  listWebhooks: () => request<SettingsWebhook[]>('/settings/webhooks'),
+  createWebhook: (data: { name: string; url: string; events?: string[]; secret?: string }) =>
+    request<SettingsWebhook>('/settings/webhooks', { method: 'POST', body: JSON.stringify(data) }),
+  updateWebhook: (id: string, data: Partial<SettingsWebhook>) =>
+    request<SettingsWebhook>(`/settings/webhooks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  testWebhook: (id: string) => request<{ success: boolean; webhookId: string; statusCode: number; responseTime: number }>(`/settings/webhooks/${id}/test`, { method: 'POST' }),
+  deleteWebhook: (id: string) => request<{ success: boolean }>(`/settings/webhooks/${id}`, { method: 'DELETE' }),
+
+  // Audit Log
+  getAuditLog: (limit?: number, offset?: number, category?: string) =>
+    request<SettingsAuditEntry[]>(`/settings/audit-log?limit=${limit || 50}&offset=${offset || 0}${category ? `&category=${category}` : ''}`),
+
+  // System Info
+  getSystemInfo: () => request<SystemInfo>('/settings/system'),
+};
