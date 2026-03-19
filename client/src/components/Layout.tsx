@@ -122,10 +122,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const path = location.pathname;
 
-  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents";
-  const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents";
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents" || path === "/claude-agents";
+  const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/claude-agents";
   const isDevinActive = path === "/devin-agents";
-  const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
+  const isAwsActive = path === "/cloud-agents" || path === "/agentcore" || path === "/claude-agents";
   const isSalesforceActive = path === "/salesforce-agents";
   const isCopilotActive = path === "/copilot-agents";
   const isGovernanceActive = path === "/governance" || path === "/governance/policies" || path === "/governance/lifecycle" || path === "/governance/audit-log" || path === "/governance/risk" || path === "/governance/reports";
@@ -157,6 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavSubSection label="AWS" icon={Globe} defaultOpen={isAwsActive} isActive={isAwsActive}>
                 <NavLink path="/cloud-agents" label="Bedrock" icon={Cloud} currentPath={path} size="small" />
                 <NavLink path="/agentcore" label="AgentCore" icon={Boxes} currentPath={path} size="small" />
+                <NavLink path="/claude-agents" label="Claude" icon={Cpu} currentPath={path} size="small" />
               </NavSubSection>
               <NavLink path="/salesforce-agents" label="Salesforce" icon={Cloud} currentPath={path} size="small" />
               <NavLink path="/copilot-agents" label="Microsoft" icon={Building2} currentPath={path} size="small" />

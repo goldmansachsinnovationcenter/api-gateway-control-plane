@@ -5,6 +5,7 @@ import * as agentCoreService from '../services/agentCoreService.js';
 import * as salesforceAgentService from '../services/salesforceAgentService.js';
 import * as copilotAgentService from '../services/copilotAgentService.js';
 import * as devinAgentService from '../services/devinAgentService.js';
+import * as claudeAgentService from '../services/claudeAgentService.js';
 
 const router = Router();
 
@@ -183,7 +184,38 @@ router.get('/', (req, res) => {
       },
     }));
 
-    const allAgents = [...localAgents, ...cloudAgents, ...runtimes, ...sfAgents, ...azureAgents, ...devinSessions];
+    // Claude invocations
+    const claudeInvocations = claudeAgentService.listInvocations().map(inv => ({
+      id: inv.id,
+      name: inv.title,
+      description: `${inv.model_short_name || inv.model} — ${inv.user_email || 'unknown'} — ${(inv.total_tokens || 0).toLocaleString()} tokens`,
+      type: 'claude',
+      provider: 'Claude (Bedrock)',
+      status: inv.status || 'completed',
+      model: inv.model_short_name || inv.model,
+      region: inv.region || 'us-east-1',
+      linkedProduct: null,
+      linkedProductId: null,
+      enabled: inv.status === 'streaming',
+      totalCalls: 1,
+      successRate: inv.status === 'completed' ? 100 : inv.status === 'error' ? 0 : 50,
+      avgResponseMs: inv.duration_ms || 0,
+      lastActive: inv.finished_at || inv.started_at,
+      createdAt: inv.created_at,
+      updatedAt: inv.updated_at,
+      details: {
+        invocationId: inv.invocation_id,
+        category: inv.category,
+        userEmail: inv.user_email,
+        promptTokens: inv.prompt_tokens,
+        completionTokens: inv.completion_tokens,
+        totalTokens: inv.total_tokens,
+        estimatedCost: inv.estimated_cost,
+        durationMs: inv.duration_ms,
+      },
+    }));
+
+    const allAgents = [...localAgents, ...cloudAgents, ...runtimes, ...sfAgents, ...azureAgents, ...devinSessions, ...claudeInvocations];
 
     // Summary stats
     const summary = {
@@ -194,6 +226,7 @@ router.get('/', (req, res) => {
       salesforce: sfAgents.length,
       copilot: azureAgents.length,
       devin: devinSessions.length,
+      claude: claudeInvocations.length,
       active: allAgents.filter(a => a.enabled).length,
       inactive: allAgents.filter(a => !a.enabled).length,
       totalCalls: allAgents.reduce((sum, a) => sum + a.totalCalls, 0),
@@ -207,6 +240,7 @@ router.get('/', (req, res) => {
         salesforce: sfAgents.length,
         copilot: azureAgents.length,
         devin: devinSessions.length,
+        claude: claudeInvocations.length,
       },
     };
 

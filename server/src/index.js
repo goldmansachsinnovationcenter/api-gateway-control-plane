@@ -14,6 +14,7 @@ import salesforceAgentRoutes from './routes/salesforceAgents.js';
 import copilotAgentRoutes from './routes/copilotAgents.js';
 import mcpDiscoveryRoutes from './routes/mcpDiscovery.js';
 import devinAgentRoutes from './routes/devinAgents.js';
+import claudeAgentRoutes from './routes/claudeAgents.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,7 @@ app.use('/api/salesforce-agents', salesforceAgentRoutes);
 app.use('/api/copilot-agents', copilotAgentRoutes);
 app.use('/api/mcp-discovery', mcpDiscoveryRoutes);
 app.use('/api/devin-agents', devinAgentRoutes);
+app.use('/api/claude-agents', claudeAgentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

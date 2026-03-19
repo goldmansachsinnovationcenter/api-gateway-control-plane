@@ -905,6 +905,66 @@ export const devinAgentsApi = {
   delete: (id: string) => request<void>(`/devin-agents/${id}`, { method: 'DELETE' }),
 };
 
+// Claude (Bedrock) types
+export interface ClaudeInvocation {
+  id: string;
+  invocation_id: string;
+  title: string;
+  category: string;
+  model: string;
+  model_short_name: string;
+  user_email: string;
+  status: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  duration_ms: number;
+  estimated_cost: number;
+  region: string;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClaudeUsageStats {
+  totalInvocations: number;
+  totalTokens: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalDurationMs: number;
+  totalCost: number;
+  avgTokensPerInvocation: number;
+  avgDurationMs: number;
+  uniqueUsers: number;
+  users: string[];
+  statusCounts: Record<string, number>;
+  modelStats: Record<string, {
+    invocations: number;
+    tokens: number;
+    promptTokens: number;
+    completionTokens: number;
+    cost: number;
+    avgDurationMs: number;
+  }>;
+  userStats: Record<string, { invocations: number; tokens: number; cost: number }>;
+  categoryStats: Record<string, { invocations: number; tokens: number; cost: number }>;
+  dailyUsage: Array<{ date: string; invocations: number; tokens: number; cost: number }>;
+}
+
+export const claudeAgentsApi = {
+  discover: (credentials?: { accessKeyId?: string; secretAccessKey?: string; region?: string }) =>
+    request<{ discovered: number; invocations: ClaudeInvocation[] }>('/claude-agents/discover', {
+      method: 'POST',
+      body: JSON.stringify(credentials || {}),
+    }),
+  list: () => request<ClaudeInvocation[]>('/claude-agents'),
+  get: (id: string) => request<ClaudeInvocation>(`/claude-agents/${id}`),
+  stats: () => request<ClaudeUsageStats>('/claude-agents/stats'),
+  sync: (id: string) => request<ClaudeInvocation>(`/claude-agents/${id}/sync`, { method: 'POST' }),
+  delete: (id: string) => request<void>(`/claude-agents/${id}`, { method: 'DELETE' }),
+};
+
 // MCP Discovery types
 export interface McpDiscoveredTool {
   name: string;
