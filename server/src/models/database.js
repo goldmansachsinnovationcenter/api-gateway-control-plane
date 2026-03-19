@@ -361,6 +361,19 @@ db.exec(`
     FOREIGN KEY (azure_agent_id) REFERENCES azure_agents(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS mcp_connections (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    api_key TEXT,
+    description TEXT,
+    status TEXT DEFAULT 'connected',
+    tool_count INTEGER DEFAULT 0,
+    last_discovered TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_policy_violations_lookup ON policy_violations(policy_id, status);
   CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);

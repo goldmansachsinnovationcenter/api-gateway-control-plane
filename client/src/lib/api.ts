@@ -818,3 +818,69 @@ export const copilotAgentsApi = {
   clearLogs: (id: string) => request<void>(`/copilot-agents/${id}/logs`, { method: 'DELETE' }),
   delete: (id: string) => request<void>(`/copilot-agents/${id}`, { method: 'DELETE' }),
 };
+
+// MCP Discovery types
+export interface McpDiscoveredTool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: string;
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
+}
+
+export interface McpDiscoveryResult {
+  connected: boolean;
+  serverInfo: { name: string; version: string };
+  protocolVersion: string;
+  capabilities: Record<string, unknown>;
+  tools: McpDiscoveredTool[];
+}
+
+export interface McpToolCallResult {
+  success: boolean;
+  error: string | null;
+  content: Array<{ type: string; text: string }>;
+  isError: boolean;
+}
+
+export interface McpConnection {
+  id: string;
+  name: string;
+  url: string;
+  api_key: string | null;
+  description: string | null;
+  status: string;
+  tool_count: number;
+  last_discovered: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const mcpDiscoveryApi = {
+  discover: (serverUrl: string, apiKey?: string) =>
+    request<McpDiscoveryResult>('/mcp-discovery/discover', {
+      method: 'POST',
+      body: JSON.stringify({ serverUrl, apiKey }),
+    }),
+  callTool: (serverUrl: string, toolName: string, args?: Record<string, unknown>, apiKey?: string) =>
+    request<McpToolCallResult>('/mcp-discovery/call', {
+      method: 'POST',
+      body: JSON.stringify({ serverUrl, apiKey, toolName, args }),
+    }),
+  listConnections: () => request<McpConnection[]>('/mcp-discovery/connections'),
+  saveConnection: (name: string, url: string, apiKey?: string, description?: string) =>
+    request<McpConnection>('/mcp-discovery/connections', {
+      method: 'POST',
+      body: JSON.stringify({ name, url, apiKey, description }),
+    }),
+  getConnection: (id: string) => request<McpConnection>(`/mcp-discovery/connections/${id}`),
+  deleteConnection: (id: string) => request<void>(`/mcp-discovery/connections/${id}`, { method: 'DELETE' }),
+};
