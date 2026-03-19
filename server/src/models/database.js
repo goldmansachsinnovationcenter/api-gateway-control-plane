@@ -97,6 +97,41 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS cloud_agents (
+    id TEXT PRIMARY KEY,
+    aws_agent_id TEXT NOT NULL,
+    aws_agent_version TEXT DEFAULT 'DRAFT',
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'NOT_PREPARED',
+    foundation_model TEXT,
+    instruction TEXT,
+    idle_session_ttl INTEGER DEFAULT 1800,
+    agent_arn TEXT,
+    alias_id TEXT,
+    alias_arn TEXT,
+    region TEXT NOT NULL DEFAULT 'us-east-1',
+    gateway_id TEXT,
+    enabled INTEGER DEFAULT 0,
+    last_synced TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS cloud_agent_logs (
+    id TEXT PRIMARY KEY,
+    cloud_agent_id TEXT NOT NULL,
+    session_id TEXT,
+    input_text TEXT,
+    output_text TEXT,
+    success INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    trace TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (cloud_agent_id) REFERENCES cloud_agents(id) ON DELETE CASCADE
+  );
 `);
 
 export default db;

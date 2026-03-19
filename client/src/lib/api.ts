@@ -128,6 +128,44 @@ export interface AgentLog {
   created_at: string;
 }
 
+export interface CloudAgent {
+  id: string;
+  aws_agent_id: string;
+  aws_agent_version: string;
+  name: string;
+  description: string;
+  status: string;
+  foundation_model: string;
+  instruction: string;
+  idle_session_ttl: number;
+  agent_arn: string;
+  alias_id: string | null;
+  alias_arn: string | null;
+  region: string;
+  gateway_id: string | null;
+  enabled: number;
+  last_synced: string | null;
+  gateway: { id: string; name: string; type: string } | null;
+  logCount: number;
+  successCount: number;
+  successRate: number;
+  logs?: CloudAgentLog[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloudAgentLog {
+  id: string;
+  cloud_agent_id: string;
+  session_id: string;
+  input_text: string;
+  output_text: string;
+  success: number;
+  duration_ms: number;
+  trace: string | null;
+  created_at: string;
+}
+
 export const gatewaysApi = {
   list: () => request<Gateway[]>('/gateways'),
   get: (id: string) => request<Gateway>(`/gateways/${id}`),
@@ -192,4 +230,29 @@ export const agentsApi = {
   clone: (id: string) => request<Agent>(`/agents/${id}/clone`, { method: 'POST' }),
   exportLogs: (id: string) =>
     request<{ agent: { id: string; name: string }; logs: AgentLog[]; exportedAt: string }>(`/agents/${id}/export`),
+};
+
+export const cloudAgentsApi = {
+  list: () => request<CloudAgent[]>('/cloud-agents'),
+  get: (id: string) => request<CloudAgent>(`/cloud-agents/${id}`),
+  discover: (gatewayId: string, credentials?: { accessKeyId: string; secretAccessKey: string; region: string }) =>
+    request<{ discovered: number; imported: CloudAgent[] }>('/cloud-agents/discover', {
+      method: 'POST',
+      body: JSON.stringify({ gatewayId, credentials }),
+    }),
+  enable: (id: string) => request<CloudAgent>(`/cloud-agents/${id}/enable`, { method: 'POST' }),
+  disable: (id: string) => request<CloudAgent>(`/cloud-agents/${id}/disable`, { method: 'POST' }),
+  invoke: (id: string, inputText: string, sessionId?: string) =>
+    request<{ logId: string; sessionId: string; inputText: string; outputText: string; success: boolean; durationMs: number }>(
+      `/cloud-agents/${id}/invoke`, { method: 'POST', body: JSON.stringify({ inputText, sessionId }) }
+    ),
+  sync: (id: string) => request<CloudAgent>(`/cloud-agents/${id}/sync`, { method: 'POST' }),
+  getLogs: (id: string, limit?: number) =>
+    request<CloudAgentLog[]>(`/cloud-agents/${id}/logs${limit ? `?limit=${limit}` : ''}`),
+  clearLogs: (id: string) => request<void>(`/cloud-agents/${id}/logs`, { method: 'DELETE' }),
+  exportLogs: (id: string) =>
+    request<{ agent: { id: string; name: string; awsAgentId: string }; logs: CloudAgentLog[]; exportedAt: string }>(
+      `/cloud-agents/${id}/export`
+    ),
+  delete: (id: string) => request<void>(`/cloud-agents/${id}`, { method: 'DELETE' }),
 };

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Server, Globe, Package, Cpu, Bot } from "lucide-react";
+import { Server, Globe, Package, Cpu, Bot, Cloud } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Gateways", icon: Server },
@@ -8,6 +8,7 @@ const navItems = [
   { path: "/products", label: "Products", icon: Package },
   { path: "/mcp", label: "MCP Testing", icon: Cpu },
   { path: "/agents", label: "Agents", icon: Bot },
+  { path: "/cloud-agents", label: "Cloud Agents", icon: Cloud },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

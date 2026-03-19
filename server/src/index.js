@@ -5,6 +5,7 @@ import apiRoutes from './routes/apis.js';
 import productRoutes from './routes/products.js';
 import mcpRoutes from './routes/mcp.js';
 import agentRoutes from './routes/agents.js';
+import bedrockAgentRoutes from './routes/bedrockAgents.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +26,7 @@ app.use('/api/apis', apiRoutes);
 app.use('/api/products', productRoutes);
 app.use('/mcp', mcpRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/cloud-agents', bedrockAgentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
