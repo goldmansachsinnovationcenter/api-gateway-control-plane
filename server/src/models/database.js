@@ -20,7 +20,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS gateways (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('aws', 'kong', 'custom')),
+    type TEXT NOT NULL CHECK(type IN ('aws', 'kong', 'azure', 'mulesoft', 'apigee', 'tyk', 'nginx', 'custom')),
     config TEXT NOT NULL,
     status TEXT DEFAULT 'active',
     created_at TEXT DEFAULT (datetime('now')),
@@ -417,5 +417,28 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);
 `);
+
+// Migration: expand gateway type CHECK constraint to include new providers
+try {
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='gateways'").get();
+  if (tableInfo && tableInfo.sql && !tableInfo.sql.includes("'azure'")) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS gateways_new (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('aws', 'kong', 'azure', 'mulesoft', 'apigee', 'tyk', 'nginx', 'custom')),
+        config TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      INSERT INTO gateways_new SELECT * FROM gateways;
+      DROP TABLE gateways;
+      ALTER TABLE gateways_new RENAME TO gateways;
+    `);
+  }
+} catch (migrationErr) {
+  console.log('Gateway type migration note:', migrationErr.message);
+}
 
 export default db;
