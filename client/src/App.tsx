@@ -4,6 +4,7 @@ import { GatewaysPage } from "@/pages/GatewaysPage";
 import { ApisPage } from "@/pages/ApisPage";
 import { ProductsPage } from "@/pages/ProductsPage";
 import { McpTestingPage } from "@/pages/McpTestingPage";
+import { AgentsPage } from "@/pages/AgentsPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/apis" element={<ApisPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/mcp" element={<McpTestingPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

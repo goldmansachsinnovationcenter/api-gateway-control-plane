@@ -98,6 +98,32 @@ export interface McpTool {
   };
 }
 
+export interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  product_id: string | null;
+  status: 'idle' | 'running' | 'error';
+  model: string;
+  system_prompt: string;
+  product: { id: string; name: string; mcp_enabled: number } | null;
+  mcpServer: McpServer | null;
+  logCount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentLog {
+  id: string;
+  agent_id: string;
+  tool_name: string;
+  args: string;
+  result: string;
+  success: number;
+  duration_ms: number;
+  created_at: string;
+}
+
 export const gatewaysApi = {
   list: () => request<Gateway[]>('/gateways'),
   get: (id: string) => request<Gateway>(`/gateways/${id}`),
@@ -138,4 +164,25 @@ export const productsApi = {
       method: 'POST',
       body: JSON.stringify({ toolName, args }),
     }),
+};
+
+export const agentsApi = {
+  list: () => request<Agent[]>('/agents'),
+  get: (id: string) => request<Agent>(`/agents/${id}`),
+  create: (data: { name: string; description?: string; productId?: string; model?: string; systemPrompt?: string }) =>
+    request<Agent>('/agents', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<{ name: string; description: string; product_id: string; model: string; system_prompt: string; status: string }>) =>
+    request<Agent>(`/agents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/agents/${id}`, { method: 'DELETE' }),
+  getLogs: (id: string, limit?: number) =>
+    request<AgentLog[]>(`/agents/${id}/logs${limit ? `?limit=${limit}` : ''}`),
+  clearLogs: (id: string) => request<void>(`/agents/${id}/logs`, { method: 'DELETE' }),
+  executeTool: (id: string, toolName: string, args: Record<string, unknown>) =>
+    request<{ logId: string; tool: string; args: Record<string, unknown>; result: unknown; success: boolean; durationMs: number }>(
+      `/agents/${id}/execute`, { method: 'POST', body: JSON.stringify({ toolName, args }) }
+    ),
+  runAll: (id: string) =>
+    request<Array<{ logId: string; tool: string; args: Record<string, unknown>; result: unknown; success: boolean; durationMs: number }>>(
+      `/agents/${id}/run-all`, { method: 'POST' }
+    ),
 };

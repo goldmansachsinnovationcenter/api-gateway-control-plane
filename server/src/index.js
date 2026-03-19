@@ -4,6 +4,7 @@ import gatewayRoutes from './routes/gateways.js';
 import apiRoutes from './routes/apis.js';
 import productRoutes from './routes/products.js';
 import mcpRoutes from './routes/mcp.js';
+import agentRoutes from './routes/agents.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +24,7 @@ app.use('/api/gateways', gatewayRoutes);
 app.use('/api/apis', apiRoutes);
 app.use('/api/products', productRoutes);
 app.use('/mcp', mcpRoutes);
+app.use('/api/agents', agentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -72,6 +72,31 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    product_id TEXT,
+    status TEXT DEFAULT 'idle',
+    model TEXT DEFAULT 'local',
+    system_prompt TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS agent_logs (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    tool_name TEXT NOT NULL,
+    args TEXT,
+    result TEXT,
+    success INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+  );
 `);
 
 export default db;
