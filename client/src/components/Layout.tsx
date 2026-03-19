@@ -1,19 +1,130 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Server, Globe, Package, Cpu, Bot, Cloud, Boxes } from "lucide-react";
+import {
+  Server, Package, Cpu, Bot, Cloud, Boxes, Shield,
+  ChevronDown, ChevronRight, Monitor, Globe,
+} from "lucide-react";
 
-const navItems = [
-  { path: "/", label: "Gateways", icon: Server },
-  { path: "/apis", label: "APIs", icon: Globe },
-  { path: "/products", label: "Products", icon: Package },
-  { path: "/mcp", label: "MCP Testing", icon: Cpu },
-  { path: "/agents", label: "Agents", icon: Bot },
-  { path: "/cloud-agents", label: "Cloud Agents", icon: Cloud },
-  { path: "/agentcore", label: "AgentCore", icon: Boxes },
-];
+// Collapsible nav section
+function NavSection({
+  label,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+  isActive,
+}: {
+  label: string;
+  icon: React.ElementType;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  isActive?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+          isActive
+            ? "text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span className="flex-1 text-left">{label}</span>
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+        )}
+      </button>
+      {open && <div className="ml-4 pl-3 border-l border-border/50 space-y-0.5 mt-0.5">{children}</div>}
+    </div>
+  );
+}
+
+// Sub-section (nested collapsible)
+function NavSubSection({
+  label,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+  isActive,
+}: {
+  label: string;
+  icon: React.ElementType;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  isActive?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors",
+          isActive
+            ? "text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        <span className="flex-1 text-left">{label}</span>
+        {open ? (
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        ) : (
+          <ChevronRight className="h-3 w-3 opacity-60" />
+        )}
+      </button>
+      {open && <div className="ml-3 pl-2.5 border-l border-border/40 space-y-0.5 mt-0.5">{children}</div>}
+    </div>
+  );
+}
+
+function NavLink({
+  path,
+  label,
+  icon: Icon,
+  currentPath,
+  size = "normal",
+}: {
+  path: string;
+  label: string;
+  icon: React.ElementType;
+  currentPath: string;
+  size?: "normal" | "small";
+}) {
+  const isActive = currentPath === path;
+  return (
+    <Link
+      to={path}
+      className={cn(
+        "flex items-center gap-3 rounded-md font-medium transition-colors",
+        size === "small" ? "gap-2.5 px-2.5 py-2 text-xs" : "px-3 py-2.5 text-sm",
+        isActive
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+      )}
+    >
+      <Icon className={size === "small" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+      {label}
+    </Link>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const path = location.pathname;
+
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore";
+  const isCloudActive = path === "/cloud-agents" || path === "/agentcore";
+  const isAwsActive = path === "/cloud-agents" || path === "/agentcore";
+  const isGovernanceActive = path === "/governance";
 
   return (
     <div className="min-h-screen flex">
@@ -27,26 +138,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <p className="text-xs text-muted-foreground mt-1">Gateway, MCP & Agent Governance</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {/* Top-level links */}
+          <NavLink path="/" label="Gateways" icon={Server} currentPath={path} />
+          <NavLink path="/products" label="Products" icon={Package} currentPath={path} />
+          <NavLink path="/mcp" label="MCP Testing" icon={Cpu} currentPath={path} />
+
+          {/* Agents Section */}
+          <NavSection label="Agents" icon={Bot} defaultOpen={isAgentsActive} isActive={isAgentsActive}>
+            <NavLink path="/agents" label="Local Agents" icon={Monitor} currentPath={path} size="small" />
+
+            <NavSubSection label="Cloud Agents" icon={Cloud} defaultOpen={isCloudActive} isActive={isCloudActive}>
+              <NavSubSection label="AWS" icon={Globe} defaultOpen={isAwsActive} isActive={isAwsActive}>
+                <NavLink path="/cloud-agents" label="Bedrock" icon={Cloud} currentPath={path} size="small" />
+                <NavLink path="/agentcore" label="AgentCore" icon={Boxes} currentPath={path} size="small" />
+              </NavSubSection>
+            </NavSubSection>
+          </NavSection>
+
+          {/* Governance Section */}
+          <NavSection label="Governance" icon={Shield} defaultOpen={isGovernanceActive} isActive={isGovernanceActive}>
+            <NavLink path="/governance" label="APIs" icon={Globe} currentPath={path} size="small" />
+          </NavSection>
         </nav>
 
         <div className="p-4 border-t border-border">
