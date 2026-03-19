@@ -119,14 +119,72 @@ export interface McpTool {
   };
 }
 
+export interface AgentGuardrails {
+  inputFilters: {
+    piiDetection: boolean;
+    topicRestrictions: string[];
+    maxInputLength: number;
+    blockedPatterns: string[];
+  };
+  outputFilters: {
+    piiRedaction: boolean;
+    contentModeration: boolean;
+    maxOutputLength: number;
+    sensitiveDataMasking: boolean;
+  };
+}
+
+export interface AgentBehaviorConfig {
+  maxRetries: number;
+  timeoutMs: number;
+  fallbackBehavior: 'return_error' | 'use_default' | 'skip';
+  escalationRules: {
+    onRepeatedFailure: 'log' | 'disable' | 'alert';
+    failureThreshold: number;
+  };
+  concurrentExecutions: number;
+}
+
+export interface AgentToolPermission {
+  level: 'full' | 'read_only' | 'restricted';
+  blocked: boolean;
+}
+
+export interface AgentAnomalyThresholds {
+  errorRatePercent: number;
+  avgLatencyMs: number;
+  latencySpikeMs: number;
+  errorSpikeCount: number;
+  minCallsForEvaluation: number;
+}
+
+export interface AgentAnomaly {
+  id: string;
+  agent_id: string;
+  anomaly_type: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  details: string;
+  metric_value: number;
+  threshold_value: number;
+  auto_action: string;
+  resolved: number;
+  resolved_at: string | null;
+  created_at: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
   description: string;
   product_id: string | null;
-  status: 'idle' | 'running' | 'error';
+  status: 'idle' | 'running' | 'error' | 'disabled';
   model: string;
   system_prompt: string;
+  enabled: number;
+  guardrails: AgentGuardrails;
+  behavior_config: AgentBehaviorConfig;
+  tool_permissions: Record<string, AgentToolPermission>;
+  anomaly_thresholds: AgentAnomalyThresholds;
   product: { id: string; name: string; mcp_enabled: number } | null;
   mcpServer: McpServer | null;
   logCount: number;
@@ -134,8 +192,36 @@ export interface Agent {
   successRate: number;
   avgResponseMs: number;
   lastActive: string | null;
+  unresolvedAnomalies: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface AgentGovernanceSummary {
+  totalAgents: number;
+  enabledAgents: number;
+  disabledAgents: number;
+  agentsWithAnomalies: number;
+  totalUnresolvedAnomalies: number;
+  criticalAnomalies: number;
+  agentHealthStatuses: Array<{
+    id: string;
+    name: string;
+    model: string;
+    enabled: boolean;
+    status: string;
+    healthStatus: 'healthy' | 'degraded' | 'warning' | 'critical' | 'disabled';
+    logCount: number;
+    successCount: number;
+    successRate: number;
+    avgResponseMs: number;
+    lastActive: string | null;
+    anomalyCount: number;
+    criticalAnomalyCount: number;
+    anomalies: AgentAnomaly[];
+    hasGuardrails: boolean;
+    hasToolPermissions: boolean;
+  }>;
 }
 
 export interface AgentLog {
@@ -232,9 +318,9 @@ export const productsApi = {
 export const agentsApi = {
   list: () => request<Agent[]>('/agents'),
   get: (id: string) => request<Agent>(`/agents/${id}`),
-  create: (data: { name: string; description?: string; productId?: string; model?: string; systemPrompt?: string }) =>
+  create: (data: { name: string; description?: string; productId?: string; model?: string; systemPrompt?: string; guardrails?: AgentGuardrails; behaviorConfig?: AgentBehaviorConfig; toolPermissions?: Record<string, AgentToolPermission>; anomalyThresholds?: AgentAnomalyThresholds }) =>
     request<Agent>('/agents', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: Partial<{ name: string; description: string; product_id: string; model: string; system_prompt: string; status: string }>) =>
+  update: (id: string, data: Partial<{ name: string; description: string; product_id: string; model: string; system_prompt: string; status: string; enabled: boolean; guardrails: AgentGuardrails; behavior_config: AgentBehaviorConfig; tool_permissions: Record<string, AgentToolPermission>; anomaly_thresholds: AgentAnomalyThresholds }>) =>
     request<Agent>(`/agents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/agents/${id}`, { method: 'DELETE' }),
   getLogs: (id: string, limit?: number) =>
@@ -251,6 +337,14 @@ export const agentsApi = {
   clone: (id: string) => request<Agent>(`/agents/${id}/clone`, { method: 'POST' }),
   exportLogs: (id: string) =>
     request<{ agent: { id: string; name: string }; logs: AgentLog[]; exportedAt: string }>(`/agents/${id}/export`),
+  enable: (id: string) => request<Agent>(`/agents/${id}/enable`, { method: 'POST' }),
+  disable: (id: string) => request<Agent>(`/agents/${id}/disable`, { method: 'POST' }),
+  getAnomalies: (id: string, includeResolved?: boolean) =>
+    request<AgentAnomaly[]>(`/agents/${id}/anomalies${includeResolved ? '?includeResolved=true' : ''}`),
+  checkAnomalies: (id: string) => request<AgentAnomaly[]>(`/agents/${id}/check-anomalies`, { method: 'POST' }),
+  resolveAnomaly: (anomalyId: string) => request<AgentAnomaly>(`/agents/anomalies/${anomalyId}/resolve`, { method: 'POST' }),
+  resolveAllAnomalies: (id: string) => request<{ success: boolean }>(`/agents/${id}/resolve-all-anomalies`, { method: 'POST' }),
+  governanceSummary: () => request<AgentGovernanceSummary>('/agents/governance/summary'),
 };
 
 export interface AgentCoreRuntime {

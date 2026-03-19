@@ -413,10 +413,48 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS agent_anomalies (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    anomaly_type TEXT NOT NULL,
+    severity TEXT DEFAULT 'medium' CHECK(severity IN ('critical', 'high', 'medium', 'low')),
+    details TEXT DEFAULT '{}',
+    metric_value REAL DEFAULT 0,
+    threshold_value REAL DEFAULT 0,
+    auto_action TEXT DEFAULT 'none',
+    resolved INTEGER DEFAULT 0,
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_agent_anomalies_agent ON agent_anomalies(agent_id, resolved);
   CREATE INDEX IF NOT EXISTS idx_policy_violations_lookup ON policy_violations(policy_id, status);
   CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON governance_audit_log(entity_type, entity_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON governance_audit_log(created_at);
 `);
+
+// Migration: add new columns to agents table for guardrails, behavior, tool permissions, anomaly thresholds
+try {
+  const agentCols = db.prepare("PRAGMA table_info(agents)").all().map(c => c.name);
+  if (!agentCols.includes('enabled')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN enabled INTEGER DEFAULT 1`);
+  }
+  if (!agentCols.includes('guardrails')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN guardrails TEXT DEFAULT '{}'`);
+  }
+  if (!agentCols.includes('behavior_config')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN behavior_config TEXT DEFAULT '{}'`);
+  }
+  if (!agentCols.includes('tool_permissions')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN tool_permissions TEXT DEFAULT '{}'`);
+  }
+  if (!agentCols.includes('anomaly_thresholds')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN anomaly_thresholds TEXT DEFAULT '{}'`);
+  }
+} catch (agentMigrationErr) {
+  console.log('Agent columns migration note:', agentMigrationErr.message);
+}
 
 // Migration: expand gateway type CHECK constraint to include new providers
 try {

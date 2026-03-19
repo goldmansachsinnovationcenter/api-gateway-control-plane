@@ -122,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const path = location.pathname;
 
-  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents" || path === "/claude-agents";
+  const isAgentsActive = path === "/agents" || path === "/cloud-agents" || path === "/agentcore" || path === "/agent-hub" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/devin-agents" || path === "/claude-agents" || path === "/agent-governance";
   const isCloudActive = path === "/cloud-agents" || path === "/agentcore" || path === "/salesforce-agents" || path === "/copilot-agents" || path === "/claude-agents";
   const isDevinActive = path === "/devin-agents";
   const isAwsActive = path === "/cloud-agents" || path === "/agentcore" || path === "/claude-agents";
@@ -152,6 +152,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Agents Section */}
           <NavSection label="Agents" icon={Bot} defaultOpen={isAgentsActive} isActive={isAgentsActive}>
             <NavLink path="/agent-hub" label="Agent Hub" icon={Zap} currentPath={path} size="small" />
+            <NavLink path="/agent-governance" label="Agent Governance" icon={Shield} currentPath={path} size="small" />
             <NavLink path="/agents" label="Local Agents" icon={Monitor} currentPath={path} size="small" />
 
             <NavSubSection label="Cloud Agents" icon={Cloud} defaultOpen={isCloudActive} isActive={isCloudActive}>

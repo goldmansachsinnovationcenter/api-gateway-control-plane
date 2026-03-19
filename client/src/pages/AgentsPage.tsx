@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { agentsApi, productsApi } from "@/lib/api";
-import type { Agent, AgentLog, Product, McpTool } from "@/lib/api";
+import type { Agent, AgentLog, Product, McpTool, AgentGuardrails, AgentBehaviorConfig, AgentToolPermission, AgentAnomalyThresholds, AgentAnomaly } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   CheckCircle, XCircle, ArrowLeft, Wrench, Zap, ScrollText,
   Copy, Download, CopyPlus, Search, Filter, ChevronDown, ChevronRight,
   Activity, Timer, TrendingUp, Loader2,
+  Shield, Settings, AlertTriangle, Power, PowerOff,
 } from "lucide-react";
 
 // Status Indicator with color coding and pulse animation
@@ -22,6 +23,7 @@ function StatusDot({ status }: { status: string }) {
     idle: "bg-emerald-400",
     running: "bg-amber-400",
     error: "bg-red-400",
+    disabled: "bg-gray-400",
   };
   return (
     <span className="relative flex h-2.5 w-2.5">
@@ -32,6 +34,19 @@ function StatusDot({ status }: { status: string }) {
     </span>
   );
 }
+
+// Default values for governance fields
+const DEFAULT_GUARDRAILS: AgentGuardrails = {
+  inputFilters: { piiDetection: true, topicRestrictions: [], maxInputLength: 10000, blockedPatterns: [] },
+  outputFilters: { piiRedaction: true, contentModeration: true, maxOutputLength: 50000, sensitiveDataMasking: true },
+};
+const DEFAULT_BEHAVIOR: AgentBehaviorConfig = {
+  maxRetries: 3, timeoutMs: 30000, fallbackBehavior: 'return_error',
+  escalationRules: { onRepeatedFailure: 'log', failureThreshold: 5 }, concurrentExecutions: 1,
+};
+const DEFAULT_THRESHOLDS: AgentAnomalyThresholds = {
+  errorRatePercent: 50, avgLatencyMs: 5000, latencySpikeMs: 10000, errorSpikeCount: 10, minCallsForEvaluation: 5,
+};
 
 // Copy to clipboard button with visual feedback
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
@@ -221,6 +236,19 @@ export function AgentsPage() {
   const [formProductId, setFormProductId] = useState("");
   const [formModel, setFormModel] = useState("local");
   const [formSystemPrompt, setFormSystemPrompt] = useState("");
+  const [formTab, setFormTab] = useState<'basic' | 'guardrails' | 'behavior' | 'tools' | 'anomaly'>('basic');
+
+  // Guardrails form state
+  const [formGuardrails, setFormGuardrails] = useState<AgentGuardrails>(DEFAULT_GUARDRAILS);
+  // Behavior config form state
+  const [formBehavior, setFormBehavior] = useState<AgentBehaviorConfig>(DEFAULT_BEHAVIOR);
+  // Tool permissions form state
+  const [formToolPermissions, setFormToolPermissions] = useState<Record<string, AgentToolPermission>>({});
+  // Anomaly thresholds form state
+  const [formThresholds, setFormThresholds] = useState<AgentAnomalyThresholds>(DEFAULT_THRESHOLDS);
+  // Topic restrictions as comma-separated text
+  const [formTopicRestrictions, setFormTopicRestrictions] = useState("");
+  const [formBlockedPatterns, setFormBlockedPatterns] = useState("");
 
   // Tool execution state
   const [selectedTool, setSelectedTool] = useState<McpTool | null>(null);
@@ -275,12 +303,24 @@ export function AgentsPage() {
     setLoading(true);
     setBackdropMessage("Creating agent...");
     try {
+      const guardrails = {
+        ...formGuardrails,
+        inputFilters: {
+          ...formGuardrails.inputFilters,
+          topicRestrictions: formTopicRestrictions ? formTopicRestrictions.split(',').map(s => s.trim()).filter(Boolean) : [],
+          blockedPatterns: formBlockedPatterns ? formBlockedPatterns.split(',').map(s => s.trim()).filter(Boolean) : [],
+        },
+      };
       await agentsApi.create({
         name: formName,
         description: formDescription,
         productId: formProductId || undefined,
         model: formModel,
         systemPrompt: formSystemPrompt,
+        guardrails,
+        behaviorConfig: formBehavior,
+        toolPermissions: Object.keys(formToolPermissions).length > 0 ? formToolPermissions : undefined,
+        anomalyThresholds: formThresholds,
       });
       setShowCreate(false);
       setFormName("");
@@ -288,11 +328,32 @@ export function AgentsPage() {
       setFormProductId("");
       setFormModel("local");
       setFormSystemPrompt("");
+      setFormGuardrails(DEFAULT_GUARDRAILS);
+      setFormBehavior(DEFAULT_BEHAVIOR);
+      setFormToolPermissions({});
+      setFormThresholds(DEFAULT_THRESHOLDS);
+      setFormTopicRestrictions("");
+      setFormBlockedPatterns("");
+      setFormTab('basic');
       await fetchAgents();
     } catch (err) {
       console.error("Failed to create agent:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleEnabled = async (e: React.MouseEvent, agent: Agent) => {
+    e.stopPropagation();
+    try {
+      if (agent.enabled) {
+        await agentsApi.disable(agent.id);
+      } else {
+        await agentsApi.enable(agent.id);
+      }
+      await fetchAgents();
+    } catch (err) {
+      console.error("Failed to toggle agent:", err);
     }
   };
 
@@ -841,6 +902,15 @@ export function AgentsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={(e) => handleToggleEnabled(e, agent)}
+                      className={`h-7 w-7 p-0 ${agent.enabled ? 'text-emerald-400 hover:text-red-400' : 'text-red-400 hover:text-emerald-400'}`}
+                      title={agent.enabled ? 'Disable Agent' : 'Enable Agent'}
+                    >
+                      {agent.enabled ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => { e.stopPropagation(); handleClone(agent.id); }}
                       className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
                       title="Clone Agent"
@@ -868,10 +938,21 @@ export function AgentsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Status</span>
                     <div className="flex items-center gap-1.5">
-                      <StatusDot status={agent.status} />
-                      <span className="text-xs">{agent.status}</span>
+                      <StatusDot status={agent.enabled ? agent.status : 'disabled'} />
+                      <span className="text-xs">{agent.enabled ? agent.status : 'disabled'}</span>
                     </div>
                   </div>
+
+                  {/* Anomaly indicator */}
+                  {(agent.unresolvedAnomalies > 0) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Anomalies</span>
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                        <AlertTriangle className="h-3 w-3 mr-0.5" />
+                        {agent.unresolvedAnomalies}
+                      </Badge>
+                    </div>
+                  )}
 
                   {/* Product */}
                   <div className="flex items-center justify-between">
@@ -924,53 +1005,170 @@ export function AgentsPage() {
         title="Create Agent"
       >
         <div className="space-y-4">
-          <Input
-            label="Agent Name"
-            id="agent-name"
-            placeholder="My API Agent"
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-          />
-          <Input
-            label="Description (optional)"
-            id="agent-desc"
-            placeholder="Agent for testing user management APIs"
-            value={formDescription}
-            onChange={(e) => setFormDescription(e.target.value)}
-          />
-          <Select
-            label="MCP-Enabled Product"
-            id="agent-product"
-            value={formProductId}
-            onChange={(e) => setFormProductId(e.target.value)}
-            options={[
-              { value: "", label: "-- Select a product --" },
-              ...products.map((p) => ({
-                value: p.id,
-                label: `${p.name} (${p.apis.length} APIs)`,
-              })),
-            ]}
-          />
-          <Input
-            label="Model"
-            id="agent-model"
-            placeholder="local"
-            value={formModel}
-            onChange={(e) => setFormModel(e.target.value)}
-          />
-          <Textarea
-            label="System Prompt (optional)"
-            id="agent-prompt"
-            placeholder="You are an API testing agent. Call tools to verify endpoint behavior."
-            value={formSystemPrompt}
-            onChange={(e) => setFormSystemPrompt(e.target.value)}
-            className="min-h-[80px]"
-          />
-          {products.length === 0 && (
-            <p className="text-xs text-yellow-500">
-              No MCP-enabled products found. Create a product and enable MCP first.
-            </p>
+          {/* Tab navigation */}
+          <div className="flex gap-1 border-b border-border pb-2">
+            {(['basic', 'guardrails', 'behavior', 'tools', 'anomaly'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setFormTab(tab)}
+                className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                  formTab === tab ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'
+                }`}
+              >
+                {tab === 'basic' ? 'Basic' : tab === 'guardrails' ? 'Guardrails' : tab === 'behavior' ? 'Behavior' : tab === 'tools' ? 'Tools' : 'Anomaly Detection'}
+              </button>
+            ))}
+          </div>
+
+          {/* Basic tab */}
+          {formTab === 'basic' && (
+            <div className="space-y-4">
+              <Input label="Agent Name" id="agent-name" placeholder="My API Agent" value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <Input label="Description (optional)" id="agent-desc" placeholder="Agent for testing user management APIs" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
+              <Select label="MCP-Enabled Product" id="agent-product" value={formProductId} onChange={(e) => setFormProductId(e.target.value)}
+                options={[{ value: "", label: "-- Select a product --" }, ...products.map((p) => ({ value: p.id, label: `${p.name} (${p.apis.length} APIs)` }))]}
+              />
+              <Input label="Model" id="agent-model" placeholder="local" value={formModel} onChange={(e) => setFormModel(e.target.value)} />
+              <Textarea label="System Prompt (optional)" id="agent-prompt" placeholder="You are an API testing agent." value={formSystemPrompt} onChange={(e) => setFormSystemPrompt(e.target.value)} className="min-h-[80px]" />
+              {products.length === 0 && <p className="text-xs text-yellow-500">No MCP-enabled products found. Create a product and enable MCP first.</p>}
+            </div>
           )}
+
+          {/* Guardrails tab */}
+          {formTab === 'guardrails' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">Input Filters</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="pii-detect" checked={formGuardrails.inputFilters.piiDetection}
+                  onChange={(e) => setFormGuardrails({...formGuardrails, inputFilters: {...formGuardrails.inputFilters, piiDetection: e.target.checked}})}
+                  className="h-4 w-4 rounded border-border bg-background" />
+                <label htmlFor="pii-detect" className="text-sm">PII Detection (SSN, Credit Card, Email, Phone)</label>
+              </div>
+              <Input label="Topic Restrictions (comma-separated)" id="topic-restrict" placeholder="politics, religion, violence"
+                value={formTopicRestrictions} onChange={(e) => setFormTopicRestrictions(e.target.value)} />
+              <Input label="Blocked Patterns (comma-separated regex)" id="blocked-patterns" placeholder="password=.*, secret_key"
+                value={formBlockedPatterns} onChange={(e) => setFormBlockedPatterns(e.target.value)} />
+              <Input label="Max Input Length" id="max-input" type="number" value={String(formGuardrails.inputFilters.maxInputLength)}
+                onChange={(e) => setFormGuardrails({...formGuardrails, inputFilters: {...formGuardrails.inputFilters, maxInputLength: parseInt(e.target.value) || 10000}})} />
+
+              <div className="flex items-center gap-2 mt-4 mb-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">Output Filters</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="pii-redact" checked={formGuardrails.outputFilters.piiRedaction}
+                  onChange={(e) => setFormGuardrails({...formGuardrails, outputFilters: {...formGuardrails.outputFilters, piiRedaction: e.target.checked}})}
+                  className="h-4 w-4 rounded border-border bg-background" />
+                <label htmlFor="pii-redact" className="text-sm">PII Redaction</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="content-mod" checked={formGuardrails.outputFilters.contentModeration}
+                  onChange={(e) => setFormGuardrails({...formGuardrails, outputFilters: {...formGuardrails.outputFilters, contentModeration: e.target.checked}})}
+                  className="h-4 w-4 rounded border-border bg-background" />
+                <label htmlFor="content-mod" className="text-sm">Content Moderation</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="data-mask" checked={formGuardrails.outputFilters.sensitiveDataMasking}
+                  onChange={(e) => setFormGuardrails({...formGuardrails, outputFilters: {...formGuardrails.outputFilters, sensitiveDataMasking: e.target.checked}})}
+                  className="h-4 w-4 rounded border-border bg-background" />
+                <label htmlFor="data-mask" className="text-sm">Sensitive Data Masking</label>
+              </div>
+              <Input label="Max Output Length" id="max-output" type="number" value={String(formGuardrails.outputFilters.maxOutputLength)}
+                onChange={(e) => setFormGuardrails({...formGuardrails, outputFilters: {...formGuardrails.outputFilters, maxOutputLength: parseInt(e.target.value) || 50000}})} />
+            </div>
+          )}
+
+          {/* Behavior tab */}
+          {formTab === 'behavior' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">Behavior Configuration</h4>
+              </div>
+              <Input label="Max Retries" id="max-retries" type="number" value={String(formBehavior.maxRetries)}
+                onChange={(e) => setFormBehavior({...formBehavior, maxRetries: parseInt(e.target.value) || 0})} />
+              <Input label="Timeout (ms)" id="timeout-ms" type="number" value={String(formBehavior.timeoutMs)}
+                onChange={(e) => setFormBehavior({...formBehavior, timeoutMs: parseInt(e.target.value) || 30000})} />
+              <Select label="Fallback Behavior" id="fallback" value={formBehavior.fallbackBehavior}
+                onChange={(e) => setFormBehavior({...formBehavior, fallbackBehavior: e.target.value as 'return_error' | 'use_default' | 'skip'})}
+                options={[{value: 'return_error', label: 'Return Error'}, {value: 'use_default', label: 'Use Default Response'}, {value: 'skip', label: 'Skip Tool'}]} />
+              <Select label="On Repeated Failure" id="escalation" value={formBehavior.escalationRules.onRepeatedFailure}
+                onChange={(e) => setFormBehavior({...formBehavior, escalationRules: {...formBehavior.escalationRules, onRepeatedFailure: e.target.value as 'log' | 'disable' | 'alert'}})}
+                options={[{value: 'log', label: 'Log Only'}, {value: 'disable', label: 'Auto-Disable Agent'}, {value: 'alert', label: 'Send Alert'}]} />
+              <Input label="Failure Threshold" id="fail-threshold" type="number" value={String(formBehavior.escalationRules.failureThreshold)}
+                onChange={(e) => setFormBehavior({...formBehavior, escalationRules: {...formBehavior.escalationRules, failureThreshold: parseInt(e.target.value) || 5}})} />
+              <Input label="Concurrent Executions" id="concurrent" type="number" value={String(formBehavior.concurrentExecutions)}
+                onChange={(e) => setFormBehavior({...formBehavior, concurrentExecutions: parseInt(e.target.value) || 1})} />
+            </div>
+          )}
+
+          {/* Tools tab */}
+          {formTab === 'tools' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">Tool Permissions</h4>
+              </div>
+              {formProductId ? (
+                <>
+                  <p className="text-xs text-muted-foreground">Set permission levels for each tool from the selected product.</p>
+                  {products.find(p => p.id === formProductId)?.apis.map(api => {
+                    const toolName = `${api.method.toLowerCase()}_${api.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const perm = formToolPermissions[toolName] || { level: 'full', blocked: false };
+                    return (
+                      <div key={api.id} className="flex items-center gap-3 p-2 bg-secondary/30 rounded-md">
+                        <div className="flex-1">
+                          <span className="text-xs font-mono">{api.method} {api.path}</span>
+                        </div>
+                        <select
+                          value={perm.level}
+                          onChange={(e) => setFormToolPermissions({...formToolPermissions, [toolName]: {...perm, level: e.target.value as 'full' | 'read_only' | 'restricted'}})}
+                          className="h-7 px-2 text-xs rounded border border-input bg-background"
+                        >
+                          <option value="full">Full Access</option>
+                          <option value="read_only">Read Only</option>
+                          <option value="restricted">Restricted</option>
+                        </select>
+                        <div className="flex items-center gap-1">
+                          <input type="checkbox" checked={perm.blocked}
+                            onChange={(e) => setFormToolPermissions({...formToolPermissions, [toolName]: {...perm, blocked: e.target.checked}})}
+                            className="h-3.5 w-3.5 rounded border-border" />
+                          <span className="text-xs text-muted-foreground">Block</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <p className="text-xs text-yellow-500">Select a product in the Basic tab first to configure tool permissions.</p>
+              )}
+            </div>
+          )}
+
+          {/* Anomaly Detection tab */}
+          {formTab === 'anomaly' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">Anomaly Detection Thresholds</h4>
+              </div>
+              <p className="text-xs text-muted-foreground">Agents will be auto-disabled when critical thresholds are breached.</p>
+              <Input label="Error Rate Threshold (%)" id="err-rate" type="number" value={String(formThresholds.errorRatePercent)}
+                onChange={(e) => setFormThresholds({...formThresholds, errorRatePercent: parseInt(e.target.value) || 50})} />
+              <Input label="Avg Latency Threshold (ms)" id="avg-latency" type="number" value={String(formThresholds.avgLatencyMs)}
+                onChange={(e) => setFormThresholds({...formThresholds, avgLatencyMs: parseInt(e.target.value) || 5000})} />
+              <Input label="Latency Spike Threshold (ms)" id="latency-spike" type="number" value={String(formThresholds.latencySpikeMs)}
+                onChange={(e) => setFormThresholds({...formThresholds, latencySpikeMs: parseInt(e.target.value) || 10000})} />
+              <Input label="Error Spike Count" id="err-spike" type="number" value={String(formThresholds.errorSpikeCount)}
+                onChange={(e) => setFormThresholds({...formThresholds, errorSpikeCount: parseInt(e.target.value) || 10})} />
+              <Input label="Min Calls for Evaluation" id="min-calls" type="number" value={String(formThresholds.minCallsForEvaluation)}
+                onChange={(e) => setFormThresholds({...formThresholds, minCallsForEvaluation: parseInt(e.target.value) || 5})} />
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">
               Cancel
