@@ -1,0 +1,11 @@
+{
+  "name": "mcp-demo-agent",
+  "version": "1.0.0",
+  "description": "Demo agent that connects to the local MCP server and calls tools",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "auto": "node src/auto-agent.js"
+  }
+}
